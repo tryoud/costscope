@@ -2,7 +2,15 @@
 
 Cost and file-scope routing for AI coding agents. · [costscope.dev](https://costscope.dev)
 
-CostScope is not another AI coding agent. It does not replace Cursor, Claude Code, Codex, Aider, Mistral Vibe, Pi, or custom shell agents. It sits before them to route work and after them to check the diff.
+CostScope is not another AI coding agent. It does not replace Cursor, Claude Code, Codex, Aider, or custom shell agents. It sits before them to route work and after them to check the diff.
+
+## Install
+
+```sh
+npm install -g @costscope/cli
+```
+
+Requires Node.js ≥ 20.
 
 ## Problem
 
@@ -12,8 +20,6 @@ AI coding agents can spend premium-model tokens on simple work and often edit a 
 
 CostScope classifies a coding task, proposes the smallest safe file scope, assigns a cheap/balanced/premium tier, prepares guardrails for the worker, and checks the resulting diff.
 
-This MVP includes the local TypeScript monorepo foundation, project detection, deterministic task classification, file-scope planning, routing, prompt generation, diff scope checks, and rough cost estimates.
-
 ## What It Is Not
 
 - Not another coding agent.
@@ -22,44 +28,50 @@ This MVP includes the local TypeScript monorepo foundation, project detection, d
 - Not a cloud service.
 - Not a dashboard.
 
-## Quickstart
+## Why Not X?
+
+**Why not just use a bigger model for everything?**
+Premium models cost 10–50× more per token. A CSS change does not need o3. CostScope routes work to the cheapest model that can do it safely.
+
+**Why not Cursor/Windsurf rules?**
+IDE rules don't survive copy-paste into a shell agent or CI pipeline. CostScope is CLI-first and CI-ready.
+
+**Why not a custom shell script?**
+Writing per-project scripts that classify tasks, plan file scope, generate prompts, and check diffs is exactly what CostScope automates—with tests.
+
+**Why not an LLM to classify the task?**
+Classification should be deterministic, auditable, and free. CostScope uses keyword matching so you can trust and override it without spending tokens.
+
+## Workflow
 
 ```sh
-pnpm install
-pnpm build
-pnpm test
-node packages/cli/dist/cli.js init
-node packages/cli/dist/cli.js scope "Add FAQ section to homepage"
-node packages/cli/dist/cli.js prompt "Add FAQ section to homepage"
-# run your coding agent with the generated prompt
-node packages/cli/dist/cli.js check-diff
-node packages/cli/dist/cli.js review-prompt "Add FAQ section to homepage" --diff
+costscope init                                               # detect project, write .costscope/config.json
+costscope scope "Add FAQ section to homepage"                # classify + plan scope
+costscope prompt "Add FAQ section to homepage"               # generate worker prompt
+# → paste prompt into your coding agent
+costscope check-diff                                         # validate what the agent changed
+costscope review-prompt "Add FAQ section to homepage" --diff # generate review prompt
 ```
+
+Pass `--json` to any command for machine-readable output.
+Pass `--output <file>` to `prompt` or `review-prompt` to write to a file.
 
 ## Example Output
 
-For the Astro fixture:
-
 ```sh
-node packages/cli/dist/cli.js scope "Add FAQ section to homepage" --root examples/astro-basic --json
+costscope scope "Add FAQ section to homepage" --root examples/astro-basic --json
 ```
 
 ```json
 {
-  "classification": {
-    "taskType": "ui-section",
-    "risk": "low",
-    "tier": "cheap"
-  },
+  "classification": { "taskType": "ui-section", "risk": "low", "tier": "cheap" },
   "fileScope": {
     "allowedFiles": [
       "src/components/sections/FAQ.astro",
       "src/content/site.json",
       "src/pages/index.astro"
     ],
-    "maybeFiles": [
-      "src/styles/global.css"
-    ]
+    "maybeFiles": ["src/styles/global.css"]
   },
   "route": {
     "tier": "cheap",
@@ -69,36 +81,30 @@ node packages/cli/dist/cli.js scope "Add FAQ section to homepage" --root example
 }
 ```
 
-## Supported Project Presets
+## Supported Frameworks
 
-- Astro
-- Next.js
-- Vite/React
-- WordPress
-- Node/generic
+Astro · Next.js · Vite · React · WordPress · Node · generic
 
-## Supported Worker Concepts
+## Development
 
-- Mistral Vibe
-- Aider
-- Codex
-- Claude Code
-- Generic shell agents
+```sh
+git clone https://github.com/tryoud/costscope.git
+cd costscope
+pnpm install
+pnpm build
+pnpm test
+# run from source:
+node packages/cli/dist/cli.js scope "Add FAQ section to homepage"
+```
 
-## MVP Workflow
-
-1. Run `costscope scope "<task>"` to classify the task, choose a route, and persist `.costscope/last-scope.json`.
-2. Run `costscope prompt "<task>"` and give the generated prompt to your worker agent.
-3. After the worker changes files, run `costscope check-diff`.
-4. Run `costscope review-prompt "<task>" --diff` for a diff-only review prompt.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
 ## Roadmap
 
-- Pi package
-- MCP server
+- MCP server adapter
 - GitHub Action
-- Dashboard later
+- Pi package integration
 
 ## License
 
-Apache-2.0
+Apache-2.0 — see [LICENSE](LICENSE).
