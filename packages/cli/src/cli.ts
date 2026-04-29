@@ -69,11 +69,16 @@ export function createProgram(): Command {
 
   program
     .command("init")
-    .description("Create a local .costscope/config.json for this repository")
+    .description("Interactive setup wizard — detect project, choose preset, configure API keys")
     .option("--force", "Overwrite an existing config")
-    .action(async (options: { force?: boolean }) => {
+    .option("--no-interactive", "Skip wizard, write default config without prompts")
+    .action(async (options: { force?: boolean; interactive?: boolean }) => {
       const global = normalizeGlobalOptions(program.opts<GlobalOptions>());
-      await printResult("Initialized CostScope config", initCommand({ root: global.root, force: options.force }), global.json);
+      await printResult(
+        "Initialized CostScope config",
+        initCommand({ root: global.root, force: options.force, interactive: options.interactive }),
+        global.json
+      );
     });
 
   program
