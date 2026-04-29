@@ -5,6 +5,7 @@ import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { Command } from "commander";
 import type { Tier } from "@costscope/core";
+import { autopilotCommand } from "./commands/autopilot.js";
 import { checkDiffCommand } from "./commands/checkDiff.js";
 import { classifyCommand } from "./commands/classify.js";
 import { costCommand } from "./commands/cost.js";
@@ -36,6 +37,35 @@ export function createProgram(): Command {
     .option("--root <path>", "Repository root", process.cwd())
     .option("--config <path>", "Config file path")
     .option("--json", "Print machine-readable JSON");
+
+  program
+    .command("autopilot")
+    .description("Plan and run a goal automatically with deterministic safety gates")
+    .argument("<goal>", "Goal to run")
+    .option("--dry-run", "Show what autopilot would run without invoking workers")
+    .option("--model <model>", "Override configured worker model for executed tasks")
+    .option("--max-tasks <count>", "Maximum number of mini-tasks to run", parsePositiveInt, 10)
+    .option("--no-check", "Skip post-run diff scope checks")
+    .option("--no-review-prompt", "Skip final review prompt generation")
+    .action(async (
+      goal: string,
+      options: { dryRun?: boolean; model?: string; maxTasks?: number; check?: boolean; reviewPrompt?: boolean }
+    ) => {
+      const global = normalizeGlobalOptions(program.opts<GlobalOptions>());
+      await printResult(
+        "Autopilot",
+        autopilotCommand(goal, {
+          root: global.root,
+          config: global.config,
+          dryRun: options.dryRun,
+          model: options.model,
+          maxTasks: options.maxTasks,
+          noCheck: options.check === false,
+          noReviewPrompt: options.reviewPrompt === false
+        }),
+        global.json
+      );
+    });
 
   program
     .command("init")
@@ -221,6 +251,14 @@ export function createProgram(): Command {
   return program;
 }
 
+function parsePositiveInt(value: string): number {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    throw new Error("--max-tasks must be a positive integer");
+  }
+  return parsed;
+}
+
 function normalizeGlobalOptions(options: GlobalOptions): { root: string; config?: string; json: boolean } {
   return {
     root: path.resolve(options.root ?? process.cwd()),
@@ -257,10 +295,22 @@ async function printResult(title: string, value: Promise<unknown>, json: boolean
     } else {
       printHuman(title, resolved);
     }
+    if (shouldExitNonZero(resolved)) process.exitCode = 1;
   } catch (error) {
     console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
     process.exitCode = 1;
   }
+}
+
+function shouldExitNonZero(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  if (value.workerFailed === true) return true;
+  if (value.stopped === true && (value.mode === "autopilot" || value.mode === "orchestrate")) return true;
+  return false;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

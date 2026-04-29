@@ -21,6 +21,7 @@ costscope prompt "Add FAQ section"
 costscope run "Add FAQ section" --dry-run
 costscope plan "Build landing page with hero, pricing and FAQ"
 costscope orchestrate "Build landing page with hero, pricing and FAQ"
+costscope autopilot "Build landing page with hero, pricing and FAQ"
 costscope check-diff
 costscope guard --strict
 costscope review-prompt "Add FAQ section" --diff
@@ -32,6 +33,8 @@ costscope cost "Add FAQ section"
 - `run` blocks dirty working trees unless `--allow-dirty` is passed.
 - `run` requires `--yes` when the route is not auto-run safe.
 - `run --dry-run` never invokes a worker.
+- `autopilot` does not ask for confirmations; it runs only auto-run-safe tasks and stops automatically otherwise.
+- `autopilot --dry-run` previews the full loop without invoking workers.
 - `guard` exits non-zero on blocked diffs.
 - `guard --strict` also fails on `needs-review`.
 - `guard --base <ref>` checks committed PR diffs.
@@ -44,4 +47,3 @@ costscope cost "Add FAQ section"
 - PR comments.
 - Managed usage limits.
 - SSO and organization controls.
-

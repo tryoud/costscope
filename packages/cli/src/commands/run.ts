@@ -62,9 +62,9 @@ export async function runCommand(task: string, options: RunOptions) {
 
   const execution = await runWithAider(workerPrompt, fileScope, project, provider);
   const changedFiles = await getChangedFiles(options.root);
-  const diffResult = options.noCheck ? undefined : checkDiffScope(changedFiles, fileScope, route.tier);
+  const diffResult = execution.exitCode === 0 && !options.noCheck ? checkDiffScope(changedFiles, fileScope, route.tier) : undefined;
 
-  if (!diffResult || diffResult.verdict === "pass") {
+  if (execution.exitCode === 0 && (!diffResult || diffResult.verdict === "pass")) {
     await writeLastScope(options.root, { task, classification, fileScope, route });
   }
 
@@ -75,6 +75,7 @@ export async function runCommand(task: string, options: RunOptions) {
     route,
     provider: publicProvider(provider),
     execution,
+    workerFailed: execution.exitCode !== 0,
     diffResult
   };
 }

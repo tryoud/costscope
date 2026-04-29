@@ -14,6 +14,7 @@ Requires Node.js ≥ 20.
 
 ```sh
 costscope init                                          # detect project, write .costscope/config.json
+costscope autopilot "Add FAQ section to homepage"       # default automatic safe loop
 costscope scope "Add FAQ section to homepage"           # classify + plan file scope
 costscope plan "Build landing page with hero and FAQ"   # split larger goals into mini-tasks
 costscope prompt "Add FAQ section to homepage"          # generate worker prompt (stdout)

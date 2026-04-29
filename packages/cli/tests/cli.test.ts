@@ -8,6 +8,7 @@ describe("createProgram", () => {
     const commands = createProgram().commands.map((command) => command.name());
     expect(commands).toEqual(
       expect.arrayContaining([
+        "autopilot",
         "init",
         "scan",
         "classify",

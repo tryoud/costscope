@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
+import { mkdir } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { execa } from "execa";
 import type { FileScope, ProjectInfo, WorkerPrompt } from "@costscope/core";
 import { CostScopeCliError } from "../errors.js";
@@ -24,6 +27,8 @@ export async function runWithAider(
   timeoutMs = 120_000
 ): Promise<ExecutorResult> {
   await ensureAiderInstalled(projectInfo.rootPath);
+  const stateDir = path.join(os.tmpdir(), "costscope-aider");
+  await mkdir(stateDir, { recursive: true });
 
   const args = [
     "--model",
@@ -34,6 +39,18 @@ export async function runWithAider(
     "--no-stream",
     "--no-auto-commits",
     "--no-dirty-commits",
+    "--no-gitignore",
+    "--no-add-gitignore-files",
+    "--no-restore-chat-history",
+    "--no-analytics",
+    "--map-tokens",
+    "0",
+    "--input-history-file",
+    path.join(stateDir, "input.history"),
+    "--chat-history-file",
+    path.join(stateDir, "chat.history.md"),
+    "--llm-history-file",
+    path.join(stateDir, "llm.history"),
     ...fileScope.allowedFiles.flatMap((file) => ["--file", file])
   ];
 
@@ -45,9 +62,11 @@ export async function runWithAider(
     all: true
   });
 
+  const output = result.all?.trim() ?? [result.stdout, result.stderr].filter(Boolean).join("\n").trim();
+
   return {
-    exitCode: result.exitCode ?? 1,
-    output: result.all?.trim() ?? [result.stdout, result.stderr].filter(Boolean).join("\n").trim()
+    exitCode: failedProviderCall(output) ? 1 : result.exitCode ?? 1,
+    output
   };
 }
 
@@ -75,4 +94,15 @@ function resolveApiKey(raw: string | undefined, env: NodeJS.ProcessEnv = process
   if (!match) return raw;
   const name = match[1];
   return name ? env[name] : undefined;
+}
+
+function failedProviderCall(output: string): boolean {
+  return [
+    "APIError:",
+    "AuthenticationError",
+    "RateLimitError",
+    "MistralException",
+    "OpenAIError",
+    "AnthropicError"
+  ].some((marker) => output.includes(marker));
 }

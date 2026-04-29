@@ -6,6 +6,7 @@ import path from "node:path";
 import { execa } from "execa";
 import { describe, expect, it } from "vitest";
 import { checkDiffCommand } from "../src/commands/checkDiff.js";
+import { autopilotCommand } from "../src/commands/autopilot.js";
 import { classifyCommand } from "../src/commands/classify.js";
 import { guardCommand } from "../src/commands/guard.js";
 import { orchestrateCommand } from "../src/commands/orchestrate.js";
@@ -107,6 +108,23 @@ describe("CLI command e2e", () => {
     expect(result.mode).toBe("orchestrate-dry-run");
     expect(result.batches.length).toBeGreaterThan(0);
     expect(result.reason[0]).toContain("--execute");
+  });
+
+  it("previews autopilot without executing workers in dry-run mode", async () => {
+    const root = await createGitFixture();
+
+    const result = await autopilotCommand("Build landing page with hero and FAQ", { root, dryRun: true });
+
+    expect(result.mode).toBe("autopilot-dry-run");
+    expect(result.batches.length).toBeGreaterThan(0);
+    expect(result.reason[0]).toContain("Autopilot would run");
+  });
+
+  it("refuses autopilot when the working tree is dirty", async () => {
+    const root = await createGitFixture();
+    await writeFile(path.join(root, "README.md"), "# Fixture\n\nDirty.\n");
+
+    await expect(autopilotCommand("Update README docs", { root })).rejects.toThrow("Working tree is not clean");
   });
 
   it("fails the CI guard when a diff is blocked", async () => {

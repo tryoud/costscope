@@ -36,6 +36,11 @@ export function printHuman(title: string, value: unknown): void {
     return;
   }
 
+  if (isRecord(value) && typeof value.mode === "string" && value.mode.startsWith("autopilot")) {
+    printAutopilot(value);
+    return;
+  }
+
   if (isRecord(value) && value.mode === "guard") {
     printGuard(value);
     return;
@@ -64,6 +69,41 @@ export function printHuman(title: string, value: unknown): void {
   }
 
   console.log(JSON.stringify(value, null, 2));
+}
+
+function printAutopilot(value: Record<string, unknown>): void {
+  printList("Reasons", asStrings(value.reason));
+  if (typeof value.maxTasks === "number") console.log(`${colors.cyan("Max tasks")}: ${value.maxTasks}`);
+  if (isRecord(value.plan)) {
+    console.log("");
+    console.log(colors.bold("Plan"));
+    printExecutionPlan(value.plan);
+  }
+  console.log("");
+  console.log(colors.bold("Execution Batches"));
+  const batches = Array.isArray(value.batches) ? value.batches : [];
+  for (const batch of batches) {
+    if (!isRecord(batch)) continue;
+    console.log(`- ${String(batch.id)}: ${asStrings(batch.taskIds).join(", ") || "(none)"}`);
+    console.log(`  ${colors.cyan("parallel")}: ${String(batch.canRunInParallel)}`);
+  }
+  if (Array.isArray(value.results)) {
+    console.log("");
+    console.log(colors.bold("Results"));
+    for (const item of value.results) {
+      if (!isRecord(item)) continue;
+      const result = isRecord(item.result) ? item.result : {};
+      const diff = isRecord(result.diffResult) ? result.diffResult : undefined;
+      const execution = isRecord(result.execution) ? result.execution : undefined;
+      const status = diff ? String(diff.verdict) : execution ? `exit ${String(execution.exitCode)}` : "completed";
+      console.log(`- ${String(item.taskId)}: ${status}`);
+    }
+  }
+  if (isRecord(value.reviewPrompt) && typeof value.reviewPrompt.prompt === "string") {
+    console.log("");
+    console.log(colors.bold("Review Prompt"));
+    console.log(value.reviewPrompt.prompt);
+  }
 }
 
 function printGuard(value: Record<string, unknown>): void {

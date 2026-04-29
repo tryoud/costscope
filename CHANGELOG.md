@@ -7,6 +7,7 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 - Provider configuration for cheap, balanced, premium, and planner tiers.
+- `costscope autopilot` as the default automatic loop for planning, safe mini-task execution, diff checks, and review prompt generation.
 - `costscope run` for scoped local worker execution through the first Aider adapter.
 - `costscope plan` for deterministic large-goal decomposition into scoped mini-tasks.
 - `costscope orchestrate` for dependency-ordered orchestration batches.

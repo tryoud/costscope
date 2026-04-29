@@ -4,6 +4,14 @@ Cost and file-scope routing for AI coding agents. · [costscope.dev](https://cos
 
 CostScope is not another AI coding agent. It does not replace Cursor, Claude Code, Codex, Aider, or custom shell agents. It sits before them to route work and after them to check the diff.
 
+For day-to-day use, start with:
+
+```sh
+costscope autopilot "Add Ollama local executor support"
+```
+
+Autopilot plans the goal, runs only auto-run-safe mini-tasks, checks each diff, and stops automatically when scope, route, worker, or diff safety is not good enough.
+
 ## Install
 
 ```sh
@@ -77,6 +85,7 @@ The free local CLI is the adoption layer. These commands do not require a CostSc
 | `run --dry-run` | Show the full local execution plan without running a worker |
 | `plan` | Split larger goals into scoped mini-tasks |
 | `orchestrate` | Build dependency batches for larger goals |
+| `autopilot` | Plan and execute auto-run-safe mini-tasks with deterministic gates |
 | `cost` | Estimate rough tier cost |
 
 ## Local Execution
@@ -107,12 +116,14 @@ Execution is intentionally conservative:
 For larger goals, CostScope can split work into mini-tasks with dependencies and parallel batches.
 
 ```sh
+costscope autopilot "Build landing page with hero, pricing and FAQ" --dry-run
+costscope autopilot "Build landing page with hero, pricing and FAQ"
 costscope plan "Build landing page with hero, pricing and FAQ"
 costscope orchestrate "Build landing page with hero, pricing and FAQ"
 costscope orchestrate "Build landing page with hero, pricing and FAQ" --execute
 ```
 
-The current local orchestrator plans parallel batches but executes conservatively in dependency order. This avoids merge conflicts while preserving the data model needed for future worker pools and local LLM executors.
+The current local autopilot plans parallel batches but executes conservatively in dependency order. It does not ask for confirmations; it runs only tasks CostScope considers auto-run safe and stops on unsafe routes, worker failures, or non-passing diff checks.
 
 ## CI Guard
 
