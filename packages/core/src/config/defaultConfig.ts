@@ -38,22 +38,31 @@ export const defaultConfig: CostScopeConfig = {
     test: null,
     typecheck: null
   },
+  preset: "default",
   providers: {
+    "scope-resolver": {
+      executor: "openrouter",
+      model: "google/gemini-2.0-flash-lite",
+      apiKey: "${OPENROUTER_API_KEY}"
+    },
     cheap: {
       executor: "vibe",
       model: "codestral-latest"
     },
     balanced: {
-      executor: "aider",
-      model: "anthropic/claude-haiku-4-5"
+      executor: "openrouter",
+      model: "deepseek/deepseek-chat",
+      apiKey: "${OPENROUTER_API_KEY}"
     },
     premium: {
-      executor: "claude-code",
-      model: "claude-sonnet-4-6"
+      executor: "anthropic-api",
+      model: "claude-sonnet-4-6",
+      apiKey: "${ANTHROPIC_API_KEY}"
     },
     planner: {
-      executor: "anthropic-api",
-      model: "claude-sonnet-4-6"
+      executor: "openrouter",
+      model: "deepseek/deepseek-r1",
+      apiKey: "${OPENROUTER_API_KEY}"
     }
   }
 };

@@ -11,6 +11,7 @@ import {
   isGitRepository,
   loadConfig,
   planFileScope,
+  resolveScopeWithLlm,
   routeTask,
   type DiffScopeResult,
   type CostScopeConfig
@@ -32,7 +33,10 @@ export interface RunOptions {
 export async function runCommand(task: string, options: RunOptions) {
   const [project, config] = await Promise.all([detectProject(options.root), loadConfig(options.root, options.config)]);
   const classification = classifyTask(task, project);
-  const fileScope = planFileScope(task, project, config);
+  const rawScope = planFileScope(task, project, config);
+  const fileScope = rawScope.allowedFiles.length === 0
+    ? await resolveScopeWithLlm(task, project, config, rawScope)
+    : rawScope;
   const route = routeTask(classification, fileScope, config);
   const workerPrompt = generateWorkerPrompt(task, classification, fileScope, route, project);
   const provider = providerForRoute(resolveRouteProvider(config, route.tier), options.model);

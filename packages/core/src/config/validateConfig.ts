@@ -16,7 +16,8 @@ const providerConfigSchema = z.object({
     z.literal("local"),
     z.literal("claude-code"),
     z.literal("anthropic-api"),
-    z.literal("openai-api")
+    z.literal("openai-api"),
+    z.literal("openrouter")
   ]),
   model: z.string().min(1),
   apiKey: z.string().optional(),
@@ -56,7 +57,9 @@ export const configSchema = z.object({
     test: z.string().nullable(),
     typecheck: z.string().nullable()
   }),
+  preset: z.enum(["default", "student", "quality"]).optional(),
   providers: z.object({
+    "scope-resolver": providerConfigSchema.optional(),
     cheap: providerConfigSchema.optional(),
     balanced: providerConfigSchema.optional(),
     premium: providerConfigSchema.optional(),
