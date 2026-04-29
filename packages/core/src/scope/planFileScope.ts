@@ -76,7 +76,7 @@ function planAstro(task: string, projectInfo: ProjectInfo, forbidden: string[], 
 }
 
 function planNext(task: string, projectInfo: ProjectInfo, forbidden: string[], reason: string[]): FileScope {
-  if (task.includes("login") || task.includes("auth") || task.includes("oauth")) {
+  if (task.includes("login") || task.includes("auth") || task.includes("oauth") || task.includes("session")) {
     return {
       allowedFiles: [],
       maybeFiles: uniquePaths(["app/api/auth/**", "lib/auth/**", "middleware.ts", ".env.example"]),
@@ -84,6 +84,53 @@ function planNext(task: string, projectInfo: ProjectInfo, forbidden: string[], r
       reason: [...reason, "Auth work is high risk and requires premium/manual review before allowing concrete files."]
     };
   }
+
+  if (task.includes("api route") || task.includes("api endpoint") || task.includes("server action")) {
+    return {
+      allowedFiles: [],
+      maybeFiles: uniquePaths(["app/api/**", "lib/api/**", "lib/db.ts"]),
+      forbiddenFiles: forbidden,
+      reason: [...reason, "API route tasks require review; the specific route file is unknown without more context."]
+    };
+  }
+
+  if (
+    task.includes("component") || task.includes("button") || task.includes("modal") ||
+    task.includes("banner") || task.includes("card") || task.includes("navbar") ||
+    task.includes("header") || task.includes("footer")
+  ) {
+    const componentFiles = projectInfo.detectedFiles
+      .filter((f) => f.startsWith("components/") || (f.startsWith("app/") && (f.endsWith(".tsx") || f.endsWith(".module.css"))))
+      .slice(0, 8);
+    return {
+      allowedFiles: componentFiles,
+      maybeFiles: uniquePaths(["components/**", "app/**/*.module.css"]),
+      forbiddenFiles: forbidden,
+      reason: [...reason, "Component tasks scoped to components/ and CSS modules."]
+    };
+  }
+
+  if (task.includes("middleware") || task.includes("redirect") || task.includes("rewrite")) {
+    return {
+      allowedFiles: maybeExisting(projectInfo.detectedFiles, ["middleware.ts"]),
+      maybeFiles: uniquePaths(["lib/middleware/**"]),
+      forbiddenFiles: forbidden,
+      reason: [...reason, "Middleware tasks scoped to middleware.ts only."]
+    };
+  }
+
+  if (
+    task.includes("database") || task.includes("migration") || task.includes("schema") ||
+    task.includes("prisma") || task.includes("drizzle")
+  ) {
+    return {
+      allowedFiles: [],
+      maybeFiles: uniquePaths(["prisma/**", "drizzle/**", "lib/db.ts", "lib/db/**", "migrations/**"]),
+      forbiddenFiles: forbidden,
+      reason: [...reason, "Database tasks require review; schema changes can have irreversible consequences."]
+    };
+  }
+
   return planGeneric(task, task, projectInfo, forbidden, reason);
 }
 
