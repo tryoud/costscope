@@ -45,11 +45,11 @@ describe("git diff scope e2e", () => {
 });
 
 async function createGitFixture(): Promise<string> {
-  const root = await mkdtemp(path.join(tmpdir(), "viberouter-git-e2e-"));
+  const root = await mkdtemp(path.join(tmpdir(), "costscope-git-e2e-"));
   await mkdir(path.join(root, "src"), { recursive: true });
   await git(root, ["init"]);
   await git(root, ["config", "user.email", "test@example.com"]);
-  await git(root, ["config", "user.name", "VibeRouter Test"]);
+  await git(root, ["config", "user.name", "CostScope Test"]);
   await writeFile(path.join(root, "package.json"), "{\"type\":\"module\"}\n");
   await writeFile(path.join(root, "src", "Allowed.ts"), "export const allowed = 1;\n");
   await git(root, ["add", "."]);

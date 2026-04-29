@@ -1,3 +1,3 @@
-# @viberouter/cli
+# @costscope/cli
 
-Local CLI adapter for VibeRouter.
+Local CLI adapter for CostScope.

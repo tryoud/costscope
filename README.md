@@ -1,8 +1,8 @@
-# VibeRouter
+# CostScope
 
-Open-source cost and file-scope router for AI coding agents.
+Cost and file-scope routing for AI coding agents. · [costscope.dev](https://costscope.dev)
 
-VibeRouter is not another AI coding agent. It does not replace Cursor, Claude Code, Codex, Aider, Mistral Vibe, Pi, or custom shell agents. It sits before them to route work and after them to check the diff.
+CostScope is not another AI coding agent. It does not replace Cursor, Claude Code, Codex, Aider, Mistral Vibe, Pi, or custom shell agents. It sits before them to route work and after them to check the diff.
 
 ## Problem
 
@@ -10,7 +10,7 @@ AI coding agents can spend premium-model tokens on simple work and often edit a 
 
 ## Solution
 
-VibeRouter classifies a coding task, proposes the smallest safe file scope, assigns a cheap/balanced/premium tier, prepares guardrails for the worker, and checks the resulting diff.
+CostScope classifies a coding task, proposes the smallest safe file scope, assigns a cheap/balanced/premium tier, prepares guardrails for the worker, and checks the resulting diff.
 
 This MVP includes the local TypeScript monorepo foundation, project detection, deterministic task classification, file-scope planning, routing, prompt generation, diff scope checks, and rough cost estimates.
 
@@ -87,10 +87,10 @@ node packages/cli/dist/cli.js scope "Add FAQ section to homepage" --root example
 
 ## MVP Workflow
 
-1. Run `viberouter scope "<task>"` to classify the task, choose a route, and persist `.viberouter/last-scope.json`.
-2. Run `viberouter prompt "<task>"` and give the generated prompt to your worker agent.
-3. After the worker changes files, run `viberouter check-diff`.
-4. Run `viberouter review-prompt "<task>" --diff` for a diff-only review prompt.
+1. Run `costscope scope "<task>"` to classify the task, choose a route, and persist `.costscope/last-scope.json`.
+2. Run `costscope prompt "<task>"` and give the generated prompt to your worker agent.
+3. After the worker changes files, run `costscope check-diff`.
+4. Run `costscope review-prompt "<task>" --diff` for a diff-only review prompt.
 
 ## Roadmap
 

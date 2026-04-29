@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { defaultConfig, detectProject, writeConfig } from "@viberouter/core";
+import { defaultConfig, detectProject, writeConfig } from "@costscope/core";
 
 export async function initCommand(options: { root: string; force?: boolean }) {
   const project = await detectProject(options.root);

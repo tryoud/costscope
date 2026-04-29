@@ -56,5 +56,5 @@ describe("project detection", () => {
 });
 
 async function tempProject(): Promise<string> {
-  return mkdtemp(path.join(tmpdir(), "viberouter-"));
+  return mkdtemp(path.join(tmpdir(), "costscope-"));
 }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { classifyTask, detectProject, generateReviewPrompt, getGitDiff, loadConfig, planFileScope, routeTask } from "@viberouter/core";
+import { classifyTask, detectProject, generateReviewPrompt, getGitDiff, loadConfig, planFileScope, routeTask } from "@costscope/core";
 
 export async function reviewPromptCommand(task: string, options: { root: string; config?: string; diff?: boolean }) {
   const [project, config] = await Promise.all([detectProject(options.root), loadConfig(options.root, options.config)]);

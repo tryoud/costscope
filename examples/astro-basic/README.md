@@ -1,11 +1,11 @@
 # Astro Basic Example
 
-Tiny Astro-shaped fixture for VibeRouter routing examples.
+Tiny Astro-shaped fixture for CostScope routing examples.
 
 Useful task:
 
 ```sh
-viberouter scope "Add FAQ section to homepage" --root examples/astro-basic
+costscope scope "Add FAQ section to homepage" --root examples/astro-basic
 ```
 
 Expected behavior:

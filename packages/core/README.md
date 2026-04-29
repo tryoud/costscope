@@ -1,3 +1,3 @@
-# @viberouter/core
+# @costscope/core
 
-Core routing, scope planning, prompt generation, diff guard, and cost estimation logic for VibeRouter.
+Core routing, scope planning, prompt generation, diff guard, and cost estimation logic for CostScope.

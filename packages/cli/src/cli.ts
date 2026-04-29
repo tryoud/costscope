@@ -3,7 +3,7 @@
 
 import path from "node:path";
 import { Command } from "commander";
-import type { Tier } from "@viberouter/core";
+import type { Tier } from "@costscope/core";
 import { checkDiffCommand } from "./commands/checkDiff.js";
 import { classifyCommand } from "./commands/classify.js";
 import { costCommand } from "./commands/cost.js";
@@ -25,7 +25,7 @@ interface GlobalOptions {
 export function createProgram(): Command {
   const program = new Command();
   program
-    .name("viberouter")
+    .name("costscope")
     .description("Route AI coding tasks by cost, risk, and file scope before handing them to a worker agent.")
     .version("0.1.0")
     .option("--root <path>", "Repository root", process.cwd())
@@ -34,11 +34,11 @@ export function createProgram(): Command {
 
   program
     .command("init")
-    .description("Create a local .viberouter/config.json for this repository")
+    .description("Create a local .costscope/config.json for this repository")
     .option("--force", "Overwrite an existing config")
     .action(async (options: { force?: boolean }) => {
       const global = normalizeGlobalOptions(program.opts<GlobalOptions>());
-      await printResult("Initialized VibeRouter config", initCommand({ root: global.root, force: options.force }), global.json);
+      await printResult("Initialized CostScope config", initCommand({ root: global.root, force: options.force }), global.json);
     });
 
   program
