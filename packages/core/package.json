@@ -3,6 +3,19 @@
   "version": "0.1.0",
   "type": "module",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tryoud/costscope.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/tryoud/costscope/issues"
+  },
+  "homepage": "https://costscope.dev",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": ["ai-agent", "cost", "scope", "file-scope", "routing", "llm", "coding-agent", "guardrails"],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [

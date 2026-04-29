@@ -2,9 +2,9 @@
 
 import type { DiffScopeResult, FileScope, Tier } from "../types.js";
 
-const cheapBlockedFiles = ["package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock", "bun.lockb"];
-const cheapBlockedPatterns = [/^astro\.config\./, /^next\.config\./, /^vite\.config\./];
-const highRiskPatterns = [/\.env(\.|$)/, /\.pem$/, /\.key$/, /(^|\/)id_rsa$/, /(^|\/)id_ed25519$/, /^wp-config\.php$/];
+const cheapBlockedFiles = ["package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock", "bun.lockb", "tsconfig.json", "turbo.json"];
+const cheapBlockedPatterns = [/^astro\.config\./, /^next\.config\./, /^vite\.config\./, /^svelte\.config\./, /^remix\.config\./, /^tsconfig\..+\.json$/];
+const highRiskPatterns = [/\.env(\.|$)/, /\.pem$/, /\.key$/, /\.p12$/, /\.pfx$/, /(^|\/)id_rsa$/, /(^|\/)id_ed25519$/, /^wp-config\.php$/];
 
 export function checkDiffScope(changedFiles: string[], fileScope: FileScope, tier: Tier = "cheap"): DiffScopeResult {
   if (changedFiles.length === 0) {

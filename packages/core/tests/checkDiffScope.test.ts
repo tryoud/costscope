@@ -31,6 +31,22 @@ describe("checkDiffScope", () => {
     const result = checkDiffScope(["package.json"], scope(["package.json"]), "balanced");
     expect(result.verdict).toBe("pass");
   });
+
+  it("blocks .pem files as high-risk regardless of scope", () => {
+    const result = checkDiffScope(["certs/server.pem"], scope(["certs/server.pem"]));
+    expect(result.verdict).toBe("block");
+    expect(result.forbiddenTouched).toContain("certs/server.pem");
+  });
+
+  it("blocks next.config.mjs in cheap mode via .* glob pattern", () => {
+    const result = checkDiffScope(["next.config.mjs"], scope(["src/Foo.ts"]), "cheap");
+    expect(result.verdict).toBe("block");
+  });
+
+  it("blocks tsconfig.json in cheap mode", () => {
+    const result = checkDiffScope(["tsconfig.json"], scope(["src/Foo.ts"]), "cheap");
+    expect(result.verdict).toBe("block");
+  });
 });
 
 function scope(allowedFiles = ["src/Foo.ts"]): FileScope {

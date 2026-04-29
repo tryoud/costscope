@@ -44,6 +44,33 @@ describe("planFileScope", () => {
     expect(scope.allowedFiles).toEqual([]);
     expect(scope.maybeFiles.length).toBeGreaterThan(0);
   });
+
+  it("plans Next.js API route task conservatively", () => {
+    const scope = planFileScope("Add an api route for contact form submission", project("nextjs", ["app/api/contact/route.ts", "lib/utils.ts"]));
+    expect(scope.allowedFiles).toEqual([]);
+    expect(scope.maybeFiles).toContain("app/api/**");
+    expect(scope.forbiddenFiles).toContain(".env");
+  });
+
+  it("plans Next.js component task with detected component files", () => {
+    const scope = planFileScope("Add a hero banner component", project("nextjs", ["components/Hero.tsx", "components/Button.tsx", "app/page.tsx"]));
+    expect(scope.allowedFiles).toContain("components/Hero.tsx");
+    expect(scope.allowedFiles).toContain("components/Button.tsx");
+    expect(scope.forbiddenFiles).toContain(".env");
+  });
+
+  it("plans Next.js database migration task conservatively", () => {
+    const scope = planFileScope("Add Prisma schema for user table", project("nextjs", ["prisma/schema.prisma", "lib/db.ts"]));
+    expect(scope.allowedFiles).toEqual([]);
+    expect(scope.maybeFiles).toContain("prisma/**");
+    expect(scope.maybeFiles).toContain("lib/db.ts");
+  });
+
+  it("plans Next.js middleware task narrowly", () => {
+    const scope = planFileScope("Add redirect middleware for /old to /new", project("nextjs", ["middleware.ts", "app/page.tsx"]));
+    expect(scope.allowedFiles).toContain("middleware.ts");
+    expect(scope.allowedFiles).not.toContain("app/page.tsx");
+  });
 });
 
 function project(projectType: ProjectType, detectedFiles: string[]): ProjectInfo {
