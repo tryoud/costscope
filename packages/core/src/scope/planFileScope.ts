@@ -147,6 +147,25 @@ function planWordPress(task: string, projectInfo: ProjectInfo, forbidden: string
 }
 
 function planGeneric(normalizedTask: string, originalTask: string, projectInfo: ProjectInfo, forbidden: string[], reason: string[]): FileScope {
+  // explicit doc/readme shortcut — always in root regardless of detectedFiles
+  if (normalizedTask.includes("readme")) {
+    return {
+      allowedFiles: uniquePaths(["README.md", ...maybeExisting(projectInfo.detectedFiles, ["docs/README.md", "README.mdx"])]),
+      maybeFiles: maybeExisting(projectInfo.detectedFiles, ["docs/**", "CHANGELOG.md"]),
+      forbiddenFiles: forbidden,
+      reason: [...reason, "README tasks are scoped to README.md."]
+    };
+  }
+
+  if (normalizedTask.includes("changelog")) {
+    return {
+      allowedFiles: uniquePaths(["CHANGELOG.md", ...maybeExisting(projectInfo.detectedFiles, ["CHANGELOG.mdx"])]),
+      maybeFiles: [],
+      forbiddenFiles: forbidden,
+      reason: [...reason, "Changelog tasks are scoped to CHANGELOG.md."]
+    };
+  }
+
   const tokens = keywordTokens(originalTask);
   const matches = projectInfo.detectedFiles.filter((file) => {
     const lower = file.toLowerCase();

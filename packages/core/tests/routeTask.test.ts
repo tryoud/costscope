@@ -28,9 +28,10 @@ describe("routeTask", () => {
     expect(route.tier).toBe("premium");
   });
 
-  it("routes unclear low-risk file scope to balanced", () => {
+  it("keeps low-risk at cheap tier even with unclear file scope", () => {
     const route = routeTask(classification("low", "cheap", 0.8), scope([]));
-    expect(route.tier).toBe("balanced");
+    expect(route.tier).toBe("cheap");
+    expect(route.autoRunAllowed).toBe(false);
   });
 });
 
