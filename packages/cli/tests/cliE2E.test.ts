@@ -7,7 +7,11 @@ import { execa } from "execa";
 import { describe, expect, it } from "vitest";
 import { checkDiffCommand } from "../src/commands/checkDiff.js";
 import { classifyCommand } from "../src/commands/classify.js";
+import { guardCommand } from "../src/commands/guard.js";
+import { orchestrateCommand } from "../src/commands/orchestrate.js";
+import { planCommand } from "../src/commands/plan.js";
 import { promptCommand } from "../src/commands/prompt.js";
+import { runCommand } from "../src/commands/run.js";
 import { scanCommand } from "../src/commands/scan.js";
 import { scopeCommand } from "../src/commands/scope.js";
 
@@ -67,6 +71,75 @@ describe("CLI command e2e", () => {
 
     expect(diff.verdict).toBe("needs-review");
     expect(diff.outOfScopeFiles).toEqual([]);
+  });
+
+  it("plans a run without executing a worker in dry-run mode", async () => {
+    const root = await createGitFixture();
+
+    const result = await runCommand("Update README docs", { root, dryRun: true });
+
+    expect(result.mode).toBe("dry-run");
+    expect(result.route.tier).toBe("cheap");
+    expect(result.provider.executor).toBe("aider");
+    expect(result.workerPrompt.prompt).toContain("Change only allowed files.");
+  });
+
+  it("requires confirmation before running routes that are not auto-run safe", async () => {
+    const root = await createGitFixture();
+
+    await expect(runCommand("Refactor the app architecture", { root })).rejects.toThrow("Auto-run is not allowed");
+  });
+
+  it("plans a larger goal as scoped mini-tasks", async () => {
+    const root = await createGitFixture();
+
+    const result = await planCommand("Build landing page with hero and FAQ", { root });
+
+    expect(result.tasks.length).toBeGreaterThan(1);
+    expect(result.tasks.at(-1)?.dependsOn.length).toBeGreaterThan(0);
+  });
+
+  it("builds orchestration batches without executing workers by default", async () => {
+    const root = await createGitFixture();
+
+    const result = await orchestrateCommand("Build landing page with hero and FAQ", { root });
+
+    expect(result.mode).toBe("orchestrate-dry-run");
+    expect(result.batches.length).toBeGreaterThan(0);
+    expect(result.reason[0]).toContain("--execute");
+  });
+
+  it("fails the CI guard when a diff is blocked", async () => {
+    const root = await createGitFixture();
+    await scopeCommand("Update README docs", { root });
+    await writeFile(path.join(root, ".env"), "SECRET=do-not-read\n");
+
+    const result = await guardCommand({ root, tier: "cheap" });
+
+    expect(result.passed).toBe(false);
+    expect(result.diffResult.verdict).toBe("block");
+  });
+
+  it("runs the CI guard without a last scope file by checking global forbidden files", async () => {
+    const root = await createGitFixture();
+    await writeFile(path.join(root, ".env"), "SECRET=do-not-read\n");
+
+    const result = await guardCommand({ root, tier: "cheap" });
+
+    expect(result.passed).toBe(false);
+    expect(result.diffResult.forbiddenTouched).toContain(".env");
+  });
+
+  it("checks committed changes against a base ref in CI guard mode", async () => {
+    const root = await createGitFixture();
+    await writeFile(path.join(root, ".env"), "SECRET=do-not-read\n");
+    await git(root, ["add", ".env"]);
+    await git(root, ["commit", "-m", "add forbidden file"]);
+
+    const result = await guardCommand({ root, tier: "cheap", base: "HEAD~1" });
+
+    expect(result.passed).toBe(false);
+    expect(result.diffResult.forbiddenTouched).toContain(".env");
   });
 });
 

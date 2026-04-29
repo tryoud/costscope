@@ -25,8 +25,8 @@ CostScope classifies a coding task, proposes the smallest safe file scope, assig
 - Not another coding agent.
 - Not a Cursor replacement.
 - Not a Claude Code replacement.
-- Not a cloud service.
-- Not a dashboard.
+- Not a managed LLM credit reseller.
+- Not a cloud dashboard in the local CLI release.
 
 ## Why Not X?
 
@@ -46,6 +46,9 @@ Classification should be deterministic, auditable, and free. CostScope uses keyw
 
 ```sh
 costscope init                                               # detect project, write .costscope/config.json
+costscope scan                                               # inspect project type and commands
+costscope classify "Add FAQ section to homepage"             # risk + tier only
+costscope route "Add FAQ section to homepage"                # scope + worker route
 costscope scope "Add FAQ section to homepage"                # classify + plan scope
 costscope prompt "Add FAQ section to homepage"               # generate worker prompt
 # → paste prompt into your coding agent
@@ -55,6 +58,71 @@ costscope review-prompt "Add FAQ section to homepage" --diff # generate review p
 
 Pass `--json` to any command for machine-readable output.
 Pass `--output <file>` to `prompt` or `review-prompt` to write to a file.
+
+## Free CLI Surface
+
+The free local CLI is the adoption layer. These commands do not require a CostScope cloud account:
+
+| Command | Purpose |
+|---|---|
+| `init` | Create `.costscope/config.json` for the repo |
+| `scan` | Detect framework, package manager, important paths, and commands |
+| `classify` | Classify risk and recommended tier |
+| `scope` | Produce allowed/maybe/forbidden file scope |
+| `route` | Combine classification, scope, worker, and reviewer recommendation |
+| `prompt` | Generate a copy-paste worker prompt |
+| `review-prompt` | Generate a diff-only reviewer prompt |
+| `check-diff` | Check local git changes against the last scope |
+| `guard` | CI-friendly policy gate |
+| `run --dry-run` | Show the full local execution plan without running a worker |
+| `plan` | Split larger goals into scoped mini-tasks |
+| `orchestrate` | Build dependency batches for larger goals |
+| `cost` | Estimate rough tier cost |
+
+## Local Execution
+
+`costscope run` closes the loop for small tasks. It routes the task, generates the worker prompt, runs the configured executor, and checks the resulting diff.
+
+```sh
+costscope run "Add FAQ section to homepage" --dry-run
+costscope run "Add FAQ section to homepage"
+```
+
+The default cheap worker is configured for Aider with `mistral/codestral-latest`. Install Aider separately if you want execution:
+
+```sh
+pip install aider-chat
+export MISTRAL_API_KEY=...
+```
+
+Execution is intentionally conservative:
+
+- dirty working trees are blocked unless `--allow-dirty` is passed
+- Aider auto-commits are disabled so CostScope can inspect the diff
+- manual-review routes require `--yes`
+- `--no-check` skips the post-run guard only when you explicitly ask for it
+
+## Orchestration
+
+For larger goals, CostScope can split work into mini-tasks with dependencies and parallel batches.
+
+```sh
+costscope plan "Build landing page with hero, pricing and FAQ"
+costscope orchestrate "Build landing page with hero, pricing and FAQ"
+costscope orchestrate "Build landing page with hero, pricing and FAQ" --execute
+```
+
+The current local orchestrator plans parallel batches but executes conservatively in dependency order. This avoids merge conflicts while preserving the data model needed for future worker pools and local LLM executors.
+
+## CI Guard
+
+Use `guard` as a CI-friendly policy gate. It exits non-zero when the diff violates scope. With `--strict`, `needs-review` also fails.
+
+```sh
+costscope guard --scope-file .costscope/last-scope.json --tier cheap
+costscope guard --base origin/main --strict --json
+costscope guard --strict --json
+```
 
 ## Example Output
 
@@ -102,8 +170,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 ## Roadmap
 
 - MCP server adapter
-- GitHub Action
-- Pi package integration
+- Hosted team policies and savings reports
+- Local LLM executor adapters
+- GitHub Action wrapper around `costscope guard`
+- Parallel worker pools with conflict isolation
 
 ## License
 

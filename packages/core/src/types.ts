@@ -4,6 +4,8 @@ export type ProjectType = "astro" | "nextjs" | "vite" | "react" | "wordpress" | 
 export type PackageManager = "pnpm" | "npm" | "yarn" | "bun" | "unknown";
 export type RiskLevel = "low" | "medium" | "high" | "critical";
 export type Tier = "cheap" | "balanced" | "premium" | "custom";
+export type Executor = "aider" | "vibe" | "local" | "claude-code" | "anthropic-api" | "openai-api";
+export type MergeRisk = "low" | "medium" | "high";
 
 export interface ProjectInfo {
   rootPath: string;
@@ -75,6 +77,34 @@ export interface CostEstimate {
   reason: string[];
 }
 
+export interface ExecutionPlan {
+  goal: string;
+  projectInfo: ProjectInfo;
+  tasks: ExecutionPlanTask[];
+  parallelGroups: ParallelGroup[];
+  reason: string[];
+}
+
+export interface ExecutionPlanTask {
+  id: string;
+  task: string;
+  dependsOn: string[];
+  parallelGroup: string;
+  parallelizable: boolean;
+  mergeRisk: MergeRisk;
+  classification: TaskClassification;
+  fileScope: FileScope;
+  route: RouteDecision;
+  reason: string[];
+}
+
+export interface ParallelGroup {
+  id: string;
+  taskIds: string[];
+  canRunInParallel: boolean;
+  reason: string[];
+}
+
 export interface CostScopeConfig {
   version: 1;
   project: {
@@ -99,10 +129,23 @@ export interface CostScopeConfig {
     test: string | null;
     typecheck: string | null;
   };
+  providers?: {
+    cheap?: ProviderConfig;
+    balanced?: ProviderConfig;
+    premium?: ProviderConfig;
+    planner?: ProviderConfig;
+  };
 }
 
 export interface TierConfig {
   workers: string[];
   reviewer: string;
   maxTaskCostUsd: number;
+}
+
+export interface ProviderConfig {
+  executor: Executor;
+  model: string;
+  apiKey?: string;
+  apiBase?: string;
 }

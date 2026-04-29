@@ -9,6 +9,20 @@ const tierConfigSchema = z.object({
   maxTaskCostUsd: z.number().nonnegative()
 });
 
+const providerConfigSchema = z.object({
+  executor: z.union([
+    z.literal("aider"),
+    z.literal("vibe"),
+    z.literal("local"),
+    z.literal("claude-code"),
+    z.literal("anthropic-api"),
+    z.literal("openai-api")
+  ]),
+  model: z.string().min(1),
+  apiKey: z.string().optional(),
+  apiBase: z.string().optional()
+});
+
 export const configSchema = z.object({
   version: z.literal(1),
   project: z.object({
@@ -41,7 +55,14 @@ export const configSchema = z.object({
     lint: z.string().nullable(),
     test: z.string().nullable(),
     typecheck: z.string().nullable()
+  }),
+  providers: z.object({
+    cheap: providerConfigSchema.optional(),
+    balanced: providerConfigSchema.optional(),
+    premium: providerConfigSchema.optional(),
+    planner: providerConfigSchema.optional()
   })
+    .optional()
 });
 
 export function validateConfig(config: unknown): CostScopeConfig {
