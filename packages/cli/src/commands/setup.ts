@@ -118,7 +118,7 @@ export async function setupWizard(options: { root: string; force?: boolean }): P
     const writeChoice = await p.select({
       message: `Add keys to ${pc.cyan(path.basename(shellFile))}?`,
       options: [
-        { value: "write", label: `Yes — append export lines to ${shellFile}` },
+        { value: "write", label: `Yes — append export lines to ${shellFile}`, hint: "recommended" },
         { value: "print", label: "No — show export commands only" }
       ]
     });
