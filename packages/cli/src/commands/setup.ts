@@ -162,9 +162,8 @@ export async function setupWizard(options: { root: string; force?: boolean }): P
   const outroLines = [
     pc.green("✓ CostScope is ready."),
     "",
-    `  ${pc.dim("Try:")}  ${pc.cyan(`costscope run --dry-run "Update README"`)}`,
-    ...(preset === "student" ? [`  ${pc.dim("Docs:")} docs/student-preset.md`] : []),
-    ...(keysWritten ? [``, `  ${pc.dim("Reload your shell:")} ${pc.cyan(`source ${shellFile}`)}`] : [])
+    `  ${pc.dim("Next:")} ${pc.cyan(`costscope run --dry-run "Update README"`)}`,
+    ...(keysWritten ? [`  ${pc.dim("Then:")} ${pc.cyan(`source ${shellFile}`)}`] : [])
   ];
   p.outro(outroLines.join("\n"));
 
