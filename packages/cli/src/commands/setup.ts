@@ -159,17 +159,14 @@ export async function setupWizard(options: { root: string; force?: boolean }): P
   s.stop(`Config written to ${pc.cyan(configPath)}`);
 
   // ── Outro ─────────────────────────────────────────────────────────────────
-  p.outro(
-    [
-      pc.green("✓ CostScope is ready."),
-      "",
-      `  ${pc.dim("Try:")}  ${pc.cyan(`costscope run --dry-run "Update README"`)}`,
-      `  ${pc.dim("Docs:")} ${pc.cyan("docs/student-preset.md")}  ${pc.dim("(if you chose student)")}`,
-      keysWritten ? `\n  ${pc.dim("Reload your shell:")} ${pc.cyan(`source ${shellFile}`)}` : ""
-    ]
-      .filter((l) => l !== undefined)
-      .join("\n")
-  );
+  const outroLines = [
+    pc.green("✓ CostScope is ready."),
+    "",
+    `  ${pc.dim("Try:")}  ${pc.cyan(`costscope run --dry-run "Update README"`)}`,
+    ...(preset === "student" ? [`  ${pc.dim("Docs:")} docs/student-preset.md`] : []),
+    ...(keysWritten ? [``, `  ${pc.dim("Reload your shell:")} ${pc.cyan(`source ${shellFile}`)}`] : [])
+  ];
+  p.outro(outroLines.join("\n"));
 
   return { configPath, preset, keysWritten, shellFile: keysWritten ? shellFile : undefined };
 }
