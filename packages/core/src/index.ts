@@ -22,3 +22,4 @@ export * from "./diff/getChangedFiles.js";
 export * from "./diff/checkDiffScope.js";
 export * from "./diff/summarizeDiff.js";
 export * from "./cost/estimateCost.js";
+export * from "./utils/git.js";

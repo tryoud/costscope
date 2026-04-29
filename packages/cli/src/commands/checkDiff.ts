@@ -2,13 +2,48 @@
 
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { checkDiffScope, getChangedFiles, type FileScope, type Tier } from "@viberouter/core";
+import { checkDiffScope, getChangedFiles, isGitRepository, type FileScope, type Tier } from "@viberouter/core";
+import { VibeRouterCliError } from "../errors.js";
 
 export async function checkDiffCommand(options: { root: string; scopeFile?: string; tier?: Tier }) {
   const scopePath = options.scopeFile ? path.resolve(options.scopeFile) : path.join(options.root, ".viberouter", "last-scope.json");
-  const raw = await readFile(scopePath, "utf8");
-  const parsed = JSON.parse(raw) as { fileScope?: FileScope } | FileScope;
-  const fileScope = "fileScope" in parsed && parsed.fileScope ? parsed.fileScope : parsed;
+  if (!(await isGitRepository(options.root))) {
+    throw new VibeRouterCliError(`Not a git repository: ${options.root}. Run check-diff from a git repo root.`);
+  }
+
+  let raw: string;
+  try {
+    raw = await readFile(scopePath, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new VibeRouterCliError(`No file scope found at ${scopePath}. Run viberouter scope "<task>" first or pass --scope-file.`);
+    }
+    throw error;
+  }
+
+  let parsed: { fileScope?: FileScope } | FileScope;
+  try {
+    parsed = JSON.parse(raw) as { fileScope?: FileScope } | FileScope;
+  } catch {
+    throw new VibeRouterCliError(`Invalid JSON in scope file: ${scopePath}`);
+  }
+
+  const fileScope = readFileScope(parsed, scopePath);
   const changedFiles = await getChangedFiles(options.root);
   return checkDiffScope(changedFiles, fileScope, options.tier ?? "cheap");
+}
+
+function readFileScope(parsed: { fileScope?: FileScope } | FileScope, scopePath: string): FileScope {
+  const candidate = "fileScope" in parsed && parsed.fileScope ? parsed.fileScope : parsed;
+  if (
+    !("allowedFiles" in candidate) ||
+    !("maybeFiles" in candidate) ||
+    !("forbiddenFiles" in candidate) ||
+    !Array.isArray(candidate.allowedFiles) ||
+    !Array.isArray(candidate.maybeFiles) ||
+    !Array.isArray(candidate.forbiddenFiles)
+  ) {
+    throw new VibeRouterCliError(`Invalid file scope shape in ${scopePath}.`);
+  }
+  return candidate;
 }

@@ -2,7 +2,7 @@
 
 Open-source cost and file-scope router for AI coding agents.
 
-VibeRouter is not another AI coding agent. It sits before and after tools like Cursor, Claude Code, Codex, Aider, Mistral Vibe, Pi, or custom shell agents.
+VibeRouter is not another AI coding agent. It does not replace Cursor, Claude Code, Codex, Aider, Mistral Vibe, Pi, or custom shell agents. It sits before them to route work and after them to check the diff.
 
 ## Problem
 
@@ -28,22 +28,44 @@ This MVP includes the local TypeScript monorepo foundation, project detection, d
 pnpm install
 pnpm build
 pnpm test
-pnpm --filter @viberouter/cli exec viberouter init
-pnpm --filter @viberouter/cli exec viberouter scan
-pnpm --filter @viberouter/cli exec viberouter classify "Add FAQ section to homepage"
-pnpm --filter @viberouter/cli exec viberouter scope "Add FAQ section to homepage"
-pnpm --filter @viberouter/cli exec viberouter route "Add FAQ section to homepage"
-pnpm --filter @viberouter/cli exec viberouter prompt "Add FAQ section to homepage"
-pnpm --filter @viberouter/cli exec viberouter check-diff
+node packages/cli/dist/cli.js init
+node packages/cli/dist/cli.js scope "Add FAQ section to homepage"
+node packages/cli/dist/cli.js prompt "Add FAQ section to homepage"
+# run your coding agent with the generated prompt
+node packages/cli/dist/cli.js check-diff
+node packages/cli/dist/cli.js review-prompt "Add FAQ section to homepage" --diff
 ```
 
 ## Example Output
 
+For the Astro fixture:
+
+```sh
+node packages/cli/dist/cli.js scope "Add FAQ section to homepage" --root examples/astro-basic --json
+```
+
 ```json
 {
-  "risk": "low",
-  "tier": "cheap",
-  "taskType": "ui-section"
+  "classification": {
+    "taskType": "ui-section",
+    "risk": "low",
+    "tier": "cheap"
+  },
+  "fileScope": {
+    "allowedFiles": [
+      "src/components/sections/FAQ.astro",
+      "src/content/site.json",
+      "src/pages/index.astro"
+    ],
+    "maybeFiles": [
+      "src/styles/global.css"
+    ]
+  },
+  "route": {
+    "tier": "cheap",
+    "recommendedWorker": "mistral-vibe",
+    "recommendedReviewer": "gpt-5.5-diff-only"
+  }
 }
 ```
 
@@ -65,7 +87,7 @@ pnpm --filter @viberouter/cli exec viberouter check-diff
 
 ## MVP Workflow
 
-1. Run `viberouter scope "<task>"` to classify the task and persist `.viberouter/last-scope.json`.
+1. Run `viberouter scope "<task>"` to classify the task, choose a route, and persist `.viberouter/last-scope.json`.
 2. Run `viberouter prompt "<task>"` and give the generated prompt to your worker agent.
 3. After the worker changes files, run `viberouter check-diff`.
 4. Run `viberouter review-prompt "<task>" --diff` for a diff-only review prompt.

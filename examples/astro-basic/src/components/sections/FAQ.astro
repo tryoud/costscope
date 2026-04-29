@@ -1,0 +1,13 @@
+---
+import site from "../../../content/site.json";
+---
+
+<section>
+  <h2>FAQ</h2>
+  {site.faq.map((item) => (
+    <article>
+      <h3>{item.question}</h3>
+      <p>{item.answer}</p>
+    </article>
+  ))}
+</section>

@@ -7,6 +7,18 @@ const cheapBlockedPatterns = [/^astro\.config\./, /^next\.config\./, /^vite\.con
 const highRiskPatterns = [/\.env(\.|$)/, /\.pem$/, /\.key$/, /(^|\/)id_rsa$/, /(^|\/)id_ed25519$/, /^wp-config\.php$/];
 
 export function checkDiffScope(changedFiles: string[], fileScope: FileScope, tier: Tier = "cheap"): DiffScopeResult {
+  if (changedFiles.length === 0) {
+    return {
+      ok: true,
+      changedFiles: [],
+      allowedFiles: fileScope.allowedFiles,
+      outOfScopeFiles: [],
+      forbiddenTouched: [],
+      verdict: "pass",
+      reason: ["No changed files detected."]
+    };
+  }
+
   const forbiddenTouched = changedFiles.filter((file) => matchesAny(file, fileScope.forbiddenFiles));
   const outOfScopeFiles = changedFiles.filter(
     (file) => !matchesAny(file, fileScope.allowedFiles) && !matchesAny(file, fileScope.maybeFiles)

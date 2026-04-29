@@ -45,6 +45,14 @@ describe("project detection", () => {
     await mkdir(path.join(root, "wp-content"));
     await expect(detectProject(root)).resolves.toMatchObject({ projectType: "wordpress" });
   });
+
+  it("includes README files in detected files", async () => {
+    const root = await tempProject();
+    await writeFile(path.join(root, "package.json"), JSON.stringify({ scripts: {} }));
+    await writeFile(path.join(root, "README.md"), "# Fixture\n");
+    const project = await detectProject(root);
+    expect(project.detectedFiles).toContain("README.md");
+  });
 });
 
 async function tempProject(): Promise<string> {

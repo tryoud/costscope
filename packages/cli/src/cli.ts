@@ -26,7 +26,7 @@ export function createProgram(): Command {
   const program = new Command();
   program
     .name("viberouter")
-    .description("Open-source cost and file-scope router for AI coding agents.")
+    .description("Route AI coding tasks by cost, risk, and file scope before handing them to a worker agent.")
     .version("0.1.0")
     .option("--root <path>", "Repository root", process.cwd())
     .option("--config <path>", "Config file path")
@@ -34,7 +34,7 @@ export function createProgram(): Command {
 
   program
     .command("init")
-    .description("Create .viberouter/config.json")
+    .description("Create a local .viberouter/config.json for this repository")
     .option("--force", "Overwrite an existing config")
     .action(async (options: { force?: boolean }) => {
       const global = normalizeGlobalOptions(program.opts<GlobalOptions>());
@@ -43,7 +43,7 @@ export function createProgram(): Command {
 
   program
     .command("scan")
-    .description("Detect project type and commands")
+    .description("Detect project type, package manager, important paths, and common commands")
     .action(async () => {
       const global = normalizeGlobalOptions(program.opts<GlobalOptions>());
       await printResult("Project scan", scanCommand({ root: global.root }), global.json);
@@ -51,7 +51,7 @@ export function createProgram(): Command {
 
   program
     .command("classify")
-    .description("Classify a coding task")
+    .description("Classify task risk and recommended cost tier")
     .argument("<task>", "Task to classify")
     .action(async (task: string) => {
       const global = normalizeGlobalOptions(program.opts<GlobalOptions>());
@@ -60,7 +60,7 @@ export function createProgram(): Command {
 
   program
     .command("scope")
-    .description("Plan allowed/maybe/forbidden file scope for a task")
+    .description("Plan allowed, maybe, and forbidden files for a task")
     .argument("<task>", "Task to scope")
     .action(async (task: string) => {
       const global = normalizeGlobalOptions(program.opts<GlobalOptions>());
@@ -69,7 +69,7 @@ export function createProgram(): Command {
 
   program
     .command("route")
-    .description("Plan file scope and choose a worker/reviewer route")
+    .description("Plan scope and choose worker/reviewer recommendations")
     .argument("<task>", "Task to route")
     .action(async (task: string) => {
       const global = normalizeGlobalOptions(program.opts<GlobalOptions>());
@@ -78,7 +78,7 @@ export function createProgram(): Command {
 
   program
     .command("prompt")
-    .description("Generate a strict worker prompt")
+    .description("Generate a strict copy-paste worker prompt")
     .argument("<task>", "Task to prompt")
     .option("--agent <agent>", "Override recommended worker agent")
     .action(async (task: string, options: { agent?: string }) => {
@@ -88,7 +88,7 @@ export function createProgram(): Command {
 
   program
     .command("review-prompt")
-    .description("Generate a diff-only review prompt")
+    .description("Generate a diff-only review prompt for a stronger model")
     .argument("<task>", "Task to review")
     .option("--diff", "Include current git diff")
     .action(async (task: string, options: { diff?: boolean }) => {
@@ -98,9 +98,9 @@ export function createProgram(): Command {
 
   program
     .command("check-diff")
-    .description("Check changed files against the last or supplied file scope")
-    .option("--scope-file <path>", "File containing a FileScope or scope command output")
-    .option("--tier <tier>", "Tier for strict checks", "cheap")
+    .description("Check current git changes against the last or supplied file scope")
+    .option("--scope-file <path>", "JSON file containing a FileScope or scope command output")
+    .option("--tier <tier>", "Tier for strict package/config checks", "cheap")
     .action(async (options: { scopeFile?: string; tier?: Tier }) => {
       const global = normalizeGlobalOptions(program.opts<GlobalOptions>());
       await printResult("Diff scope check", checkDiffCommand({ root: global.root, scopeFile: options.scopeFile, tier: options.tier }), global.json);
@@ -108,7 +108,7 @@ export function createProgram(): Command {
 
   program
     .command("cost")
-    .description("Estimate rough task cost by routed tier")
+    .description("Estimate rough local task cost by routed tier")
     .argument("<task>", "Task to estimate")
     .action(async (task: string) => {
       const global = normalizeGlobalOptions(program.opts<GlobalOptions>());
@@ -135,7 +135,7 @@ async function printResult(title: string, value: Promise<unknown>, json: boolean
       printHuman(title, resolved);
     }
   } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
+    console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
     process.exitCode = 1;
   }
 }

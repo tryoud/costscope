@@ -6,14 +6,21 @@ export async function scanProjectTree(rootPath: string): Promise<string[]> {
   return globby(
     [
       "package.json",
+      "README.md",
+      "docs",
       "astro.config.*",
       "next.config.*",
       "vite.config.*",
       "app",
+      "app/**/*",
       "pages",
+      "pages/**/*",
       "src",
+      "src/**/*",
       "components",
+      "components/**/*",
       "wp-content",
+      "wp-content/**/*",
       "wp-config.php"
     ],
     {
@@ -21,7 +28,7 @@ export async function scanProjectTree(rootPath: string): Promise<string[]> {
       onlyFiles: false,
       dot: false,
       gitignore: true,
-      deep: 2,
+      deep: 5,
       ignore: ["node_modules", "dist", ".git"]
     }
   );

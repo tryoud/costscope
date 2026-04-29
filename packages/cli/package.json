@@ -8,6 +8,12 @@
   },
   "main": "./dist/cli.js",
   "types": "./dist/cli.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "NOTICE"
+  ],
   "scripts": {
     "build": "tsup src/cli.ts --format esm --dts",
     "test": "vitest run",
@@ -19,6 +25,7 @@
     "picocolors": "^1.1.1"
   },
   "devDependencies": {
+    "execa": "^9.6.0",
     "vitest": "^3.2.4"
   }
 }
