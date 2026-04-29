@@ -4,7 +4,8 @@ export type ProjectType = "astro" | "nextjs" | "vite" | "react" | "wordpress" | 
 export type PackageManager = "pnpm" | "npm" | "yarn" | "bun" | "unknown";
 export type RiskLevel = "low" | "medium" | "high" | "critical";
 export type Tier = "cheap" | "balanced" | "premium" | "custom";
-export type Executor = "aider" | "vibe" | "local" | "claude-code" | "anthropic-api" | "openai-api";
+export type Executor = "aider" | "vibe" | "local" | "claude-code" | "anthropic-api" | "openai-api" | "openrouter";
+export type ModelPreset = "default" | "student" | "quality";
 export type MergeRisk = "low" | "medium" | "high";
 
 export interface ProjectInfo {
@@ -129,7 +130,9 @@ export interface CostScopeConfig {
     test: string | null;
     typecheck: string | null;
   };
+  preset?: ModelPreset;
   providers?: {
+    "scope-resolver"?: ProviderConfig;
     cheap?: ProviderConfig;
     balanced?: ProviderConfig;
     premium?: ProviderConfig;
