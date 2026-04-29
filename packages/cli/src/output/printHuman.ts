@@ -153,8 +153,10 @@ function printExecutionPlan(value: Record<string, unknown>): void {
   const tasks = Array.isArray(value.tasks) ? value.tasks : [];
   for (const task of tasks) {
     if (!isRecord(task)) continue;
+    const tier = isRecord(task.route) ? String(task.route.tier) : "unknown";
+    const workerHint = tier === "cheap" ? colors.green("vibe") : tier === "premium" ? colors.yellow("claude-code") : "aider";
     console.log(`- ${String(task.id)}: ${String(task.task)}`);
-    console.log(`  ${colors.cyan("tier")}: ${isRecord(task.route) ? String(task.route.tier) : "unknown"}`);
+    console.log(`  ${colors.cyan("tier")}: ${tier} → ${workerHint}`);
     console.log(`  ${colors.cyan("merge risk")}: ${String(task.mergeRisk)}`);
     console.log(`  ${colors.cyan("parallel group")}: ${String(task.parallelGroup)}`);
     console.log(`  ${colors.cyan("depends on")}: ${asStrings(task.dependsOn).join(", ") || "(none)"}`);
@@ -232,7 +234,9 @@ function printProvider(value: unknown): void {
   if (!isRecord(value)) return;
   console.log("");
   console.log(colors.bold("Provider"));
-  console.log(`${colors.cyan("Executor")}: ${String(value.executor)}`);
+  const executor = String(value.executor);
+  const executorLabel = executor === "vibe" ? colors.green(executor) : executor === "claude-code" ? colors.yellow(executor) : colors.cyan(executor);
+  console.log(`${colors.cyan("Executor")}: ${executorLabel}`);
   console.log(`${colors.cyan("Model")}: ${String(value.model)}`);
 }
 

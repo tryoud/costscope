@@ -17,6 +17,7 @@ import {
 } from "@costscope/core";
 import { CostScopeCliError } from "../errors.js";
 import { runWithAider, type AiderProviderConfig, type ExecutorResult } from "../executors/aider.js";
+import { runWithVibe, type VibeProviderConfig } from "../executors/vibe.js";
 
 export interface RunOptions {
   root: string;
@@ -56,11 +57,14 @@ export async function runCommand(task: string, options: RunOptions) {
     );
   }
 
-  if (provider.executor !== "aider") {
-    throw new CostScopeCliError(`Executor "${provider.executor}" is configured but only "aider" is implemented for costscope run.`);
+  let execution: ExecutorResult;
+  if (provider.executor === "aider") {
+    execution = await runWithAider(workerPrompt, fileScope, project, provider);
+  } else if (provider.executor === "vibe") {
+    execution = await runWithVibe(workerPrompt, fileScope, project, provider);
+  } else {
+    throw new CostScopeCliError(`Executor "${provider.executor}" is not implemented. Supported: aider, vibe.`);
   }
-
-  const execution = await runWithAider(workerPrompt, fileScope, project, provider);
   const changedFiles = await getChangedFiles(options.root);
   const diffResult = execution.exitCode === 0 && !options.noCheck ? checkDiffScope(changedFiles, fileScope, route.tier) : undefined;
 
@@ -80,7 +84,7 @@ export async function runCommand(task: string, options: RunOptions) {
   };
 }
 
-type RunnerProviderConfig = AiderProviderConfig;
+type RunnerProviderConfig = AiderProviderConfig | VibeProviderConfig;
 type ConfigWithProviders = CostScopeConfig & {
   providers?: {
     cheap?: RunnerProviderConfig;
@@ -104,8 +108,8 @@ function resolveRouteProvider(config: CostScopeConfig, tier: string): RunnerProv
 
 const fallbackProviders = {
   cheap: {
-    executor: "aider",
-    model: "mistral/codestral-latest"
+    executor: "vibe",
+    model: "codestral-latest"
   },
   balanced: {
     executor: "aider",
