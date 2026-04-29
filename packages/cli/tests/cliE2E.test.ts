@@ -81,7 +81,7 @@ describe("CLI command e2e", () => {
 
     expect(result.mode).toBe("dry-run");
     expect(result.route.tier).toBe("cheap");
-    expect(result.provider.executor).toBe("aider");
+    expect(result.provider.executor).toBe("vibe");
     expect(result.workerPrompt.prompt).toContain("Change only allowed files.");
   });
 
