@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import type { FileScope, RouteDecision, TaskClassification, VibeRouterConfig } from "../types.js";
+import type { FileScope, RouteDecision, TaskClassification, CostScopeConfig } from "../types.js";
 import { defaultConfig } from "../config/defaultConfig.js";
 import { recommendReviewer, recommendWorker } from "./agentRecommendations.js";
 import { decideTier, hasSensitiveFlags } from "./tierRules.js";
@@ -8,7 +8,7 @@ import { decideTier, hasSensitiveFlags } from "./tierRules.js";
 export function routeTask(
   classification: TaskClassification,
   fileScope: FileScope,
-  config: VibeRouterConfig = defaultConfig
+  config: CostScopeConfig = defaultConfig
 ): RouteDecision {
   const decision = decideTier(classification, fileScope);
   const tier = decision.tier;

@@ -53,7 +53,7 @@ describe("CLI command e2e", () => {
 
   it("marks maybe-file changes as needs-review", async () => {
     const root = await createGitFixture();
-    await writeFile(path.join(root, ".viberouter", "last-scope.json"), JSON.stringify({
+    await writeFile(path.join(root, ".costscope", "last-scope.json"), JSON.stringify({
       fileScope: {
         allowedFiles: ["README.md"],
         maybeFiles: ["src/**"],
@@ -71,14 +71,14 @@ describe("CLI command e2e", () => {
 });
 
 async function createGitFixture(): Promise<string> {
-  const root = await mkdtemp(path.join(tmpdir(), "viberouter-cli-e2e-"));
+  const root = await mkdtemp(path.join(tmpdir(), "costscope-cli-e2e-"));
   await mkdir(path.join(root, "src"), { recursive: true });
-  await mkdir(path.join(root, ".viberouter"), { recursive: true });
+  await mkdir(path.join(root, ".costscope"), { recursive: true });
   await git(root, ["init"]);
   await git(root, ["config", "user.email", "test@example.com"]);
-  await git(root, ["config", "user.name", "VibeRouter Test"]);
+  await git(root, ["config", "user.name", "CostScope Test"]);
   await writeFile(path.join(root, "package.json"), "{\"name\":\"fixture\",\"type\":\"module\"}\n");
-  await writeFile(path.join(root, ".gitignore"), ".viberouter/\n");
+  await writeFile(path.join(root, ".gitignore"), ".costscope/\n");
   await writeFile(path.join(root, "README.md"), "# Fixture\n");
   await writeFile(path.join(root, "src", "index.ts"), "export const fixture = true;\n");
   await git(root, ["add", "."]);

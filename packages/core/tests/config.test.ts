@@ -33,7 +33,7 @@ describe("config", () => {
 });
 
 async function tempProject(): Promise<string> {
-  const root = path.join(tmpdir(), `viberouter-config-${Date.now()}-${Math.random()}`);
+  const root = path.join(tmpdir(), `costscope-config-${Date.now()}-${Math.random()}`);
   await mkdir(root, { recursive: true });
   return root;
 }

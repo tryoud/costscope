@@ -89,6 +89,14 @@ function printDiffResult(value: Record<string, unknown>): void {
   printList("Out of scope", asStrings(value.outOfScopeFiles), "(none)");
   printList("Forbidden touched", asStrings(value.forbiddenTouched), "(none)");
   printList("Reasons", asStrings(value.reason));
+  console.log("");
+  if (verdict === "block") {
+    console.log(`${colors.bold("Next:")} Revert forbidden/out-of-scope files, then re-run ${colors.cyan("costscope check-diff")}.`);
+  } else if (verdict === "needs-review") {
+    console.log(`${colors.bold("Next:")} Run ${colors.cyan('costscope review-prompt "<task>" --diff')} and send to your reviewer.`);
+  } else {
+    console.log(`${colors.bold("Next:")} Run ${colors.cyan('costscope review-prompt "<task>" --diff')} for a final review, then merge.`);
+  }
 }
 
 function printOptional(label: string, value: unknown): void {

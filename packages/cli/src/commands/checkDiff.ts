@@ -2,13 +2,13 @@
 
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { checkDiffScope, getChangedFiles, isGitRepository, type FileScope, type Tier } from "@viberouter/core";
-import { VibeRouterCliError } from "../errors.js";
+import { checkDiffScope, getChangedFiles, isGitRepository, type FileScope, type Tier } from "@costscope/core";
+import { CostScopeCliError } from "../errors.js";
 
 export async function checkDiffCommand(options: { root: string; scopeFile?: string; tier?: Tier }) {
-  const scopePath = options.scopeFile ? path.resolve(options.scopeFile) : path.join(options.root, ".viberouter", "last-scope.json");
+  const scopePath = options.scopeFile ? path.resolve(options.scopeFile) : path.join(options.root, ".costscope", "last-scope.json");
   if (!(await isGitRepository(options.root))) {
-    throw new VibeRouterCliError(`Not a git repository: ${options.root}. Run check-diff from a git repo root.`);
+    throw new CostScopeCliError(`Not a git repository: ${options.root}. Run check-diff from a git repo root.`);
   }
 
   let raw: string;
@@ -16,7 +16,7 @@ export async function checkDiffCommand(options: { root: string; scopeFile?: stri
     raw = await readFile(scopePath, "utf8");
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      throw new VibeRouterCliError(`No file scope found at ${scopePath}. Run viberouter scope "<task>" first or pass --scope-file.`);
+      throw new CostScopeCliError(`No file scope found at ${scopePath}. Run costscope scope "<task>" first or pass --scope-file.`);
     }
     throw error;
   }
@@ -25,7 +25,7 @@ export async function checkDiffCommand(options: { root: string; scopeFile?: stri
   try {
     parsed = JSON.parse(raw) as { fileScope?: FileScope } | FileScope;
   } catch {
-    throw new VibeRouterCliError(`Invalid JSON in scope file: ${scopePath}`);
+    throw new CostScopeCliError(`Invalid JSON in scope file: ${scopePath}`);
   }
 
   const fileScope = readFileScope(parsed, scopePath);
@@ -43,7 +43,7 @@ function readFileScope(parsed: { fileScope?: FileScope } | FileScope, scopePath:
     !Array.isArray(candidate.maybeFiles) ||
     !Array.isArray(candidate.forbiddenFiles)
   ) {
-    throw new VibeRouterCliError(`Invalid file scope shape in ${scopePath}.`);
+    throw new CostScopeCliError(`Invalid file scope shape in ${scopePath}.`);
   }
   return candidate;
 }

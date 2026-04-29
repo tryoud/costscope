@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { z } from "zod";
-import type { VibeRouterConfig } from "../types.js";
+import type { CostScopeConfig } from "../types.js";
 
 const tierConfigSchema = z.object({
   workers: z.array(z.string()).min(1),
@@ -44,6 +44,6 @@ export const configSchema = z.object({
   })
 });
 
-export function validateConfig(config: unknown): VibeRouterConfig {
+export function validateConfig(config: unknown): CostScopeConfig {
   return configSchema.parse(config);
 }

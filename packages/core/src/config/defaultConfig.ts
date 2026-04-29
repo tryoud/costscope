@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import type { VibeRouterConfig } from "../types.js";
+import type { CostScopeConfig } from "../types.js";
 
-export const defaultConfig: VibeRouterConfig = {
+export const defaultConfig: CostScopeConfig = {
   version: 1,
   project: {
     type: "auto",

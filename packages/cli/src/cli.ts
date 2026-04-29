@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 // SPDX-License-Identifier: Apache-2.0
 
+import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { Command } from "commander";
-import type { Tier } from "@viberouter/core";
+import type { Tier } from "@costscope/core";
 import { checkDiffCommand } from "./commands/checkDiff.js";
 import { classifyCommand } from "./commands/classify.js";
 import { costCommand } from "./commands/cost.js";
@@ -25,7 +26,7 @@ interface GlobalOptions {
 export function createProgram(): Command {
   const program = new Command();
   program
-    .name("viberouter")
+    .name("costscope")
     .description("Route AI coding tasks by cost, risk, and file scope before handing them to a worker agent.")
     .version("0.1.0")
     .option("--root <path>", "Repository root", process.cwd())
@@ -34,11 +35,11 @@ export function createProgram(): Command {
 
   program
     .command("init")
-    .description("Create a local .viberouter/config.json for this repository")
+    .description("Create a local .costscope/config.json for this repository")
     .option("--force", "Overwrite an existing config")
     .action(async (options: { force?: boolean }) => {
       const global = normalizeGlobalOptions(program.opts<GlobalOptions>());
-      await printResult("Initialized VibeRouter config", initCommand({ root: global.root, force: options.force }), global.json);
+      await printResult("Initialized CostScope config", initCommand({ root: global.root, force: options.force }), global.json);
     });
 
   program
@@ -81,9 +82,14 @@ export function createProgram(): Command {
     .description("Generate a strict copy-paste worker prompt")
     .argument("<task>", "Task to prompt")
     .option("--agent <agent>", "Override recommended worker agent")
-    .action(async (task: string, options: { agent?: string }) => {
+    .option("--output <file>", "Write prompt text to a file instead of stdout")
+    .action(async (task: string, options: { agent?: string; output?: string }) => {
       const global = normalizeGlobalOptions(program.opts<GlobalOptions>());
-      await printResult("Worker prompt", promptCommand(task, { root: global.root, config: global.config, agent: options.agent }), global.json);
+      if (global.json) {
+        await printResult("Worker prompt", promptCommand(task, { root: global.root, config: global.config, agent: options.agent }), true);
+      } else {
+        await printPrompt(promptCommand(task, { root: global.root, config: global.config, agent: options.agent }), options.output);
+      }
     });
 
   program
@@ -91,9 +97,14 @@ export function createProgram(): Command {
     .description("Generate a diff-only review prompt for a stronger model")
     .argument("<task>", "Task to review")
     .option("--diff", "Include current git diff")
-    .action(async (task: string, options: { diff?: boolean }) => {
+    .option("--output <file>", "Write prompt text to a file instead of stdout")
+    .action(async (task: string, options: { diff?: boolean; output?: string }) => {
       const global = normalizeGlobalOptions(program.opts<GlobalOptions>());
-      await printResult("Review prompt", reviewPromptCommand(task, { root: global.root, config: global.config, diff: options.diff }), global.json);
+      if (global.json) {
+        await printResult("Review prompt", reviewPromptCommand(task, { root: global.root, config: global.config, diff: options.diff }), true);
+      } else {
+        await printPrompt(reviewPromptCommand(task, { root: global.root, config: global.config, diff: options.diff }), options.output);
+      }
     });
 
   program
@@ -124,6 +135,26 @@ function normalizeGlobalOptions(options: GlobalOptions): { root: string; config?
     config: options.config ? path.resolve(options.config) : undefined,
     json: Boolean(options.json)
   };
+}
+
+async function printPrompt(value: Promise<unknown>, outputFile?: string): Promise<void> {
+  try {
+    const resolved = await value;
+    const text = isPromptShape(resolved) ? resolved.prompt : JSON.stringify(resolved, null, 2);
+    if (outputFile) {
+      await writeFile(path.resolve(outputFile), text, "utf8");
+      console.error(`Prompt written to ${path.resolve(outputFile)}`);
+    } else {
+      process.stdout.write(text + "\n");
+    }
+  } catch (error) {
+    console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+    process.exitCode = 1;
+  }
+}
+
+function isPromptShape(value: unknown): value is { prompt: string } {
+  return typeof value === "object" && value !== null && "prompt" in value && typeof (value as Record<string, unknown>).prompt === "string";
 }
 
 async function printResult(title: string, value: Promise<unknown>, json: boolean): Promise<void> {

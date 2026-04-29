@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import type { FileScope, ProjectInfo, VibeRouterConfig } from "../types.js";
+import type { FileScope, ProjectInfo, CostScopeConfig } from "../types.js";
 import { classifyTask } from "../classify/classifyTask.js";
 import { defaultConfig } from "../config/defaultConfig.js";
 import { cheapModeForbiddenFiles, defaultForbiddenFiles } from "./forbiddenFiles.js";
@@ -8,7 +8,7 @@ import { keywordTokens, likelyDirectories } from "./fileScopeRules.js";
 import { maybeExisting, uniquePaths } from "./pathMatchers.js";
 import { validateFileScope } from "./validateFileScope.js";
 
-export function planFileScope(task: string, projectInfo: ProjectInfo, config: VibeRouterConfig = defaultConfig): FileScope {
+export function planFileScope(task: string, projectInfo: ProjectInfo, config: CostScopeConfig = defaultConfig): FileScope {
   const classification = classifyTask(task, projectInfo);
   const normalized = task.toLowerCase();
   const forbidden = [

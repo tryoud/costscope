@@ -1,13 +1,13 @@
 # AGENTS.md
 
 ## Project
-VibeRouter is an open-source cost and file-scope router for AI coding agents.
+CostScope is an Cost and file-scope routing for AI coding agents.
 
 ## Philosophy
 - Do not build another coding agent.
 - Build routing, file scope, prompt generation, and diff guard logic.
 - Keep the core platform-independent.
-- All integrations must be thin adapters over @viberouter/core.
+- All integrations must be thin adapters over @costscope/core.
 
 ## Commands
 - Install: pnpm install

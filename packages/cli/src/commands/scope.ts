@@ -2,7 +2,7 @@
 
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { classifyTask, detectProject, loadConfig, planFileScope, routeTask } from "@viberouter/core";
+import { classifyTask, detectProject, loadConfig, planFileScope, routeTask } from "@costscope/core";
 
 export async function scopeCommand(task: string, options: { root: string; config?: string }) {
   const [project, config] = await Promise.all([detectProject(options.root), loadConfig(options.root, options.config)]);
@@ -14,7 +14,7 @@ export async function scopeCommand(task: string, options: { root: string; config
 }
 
 async function writeLastScope(root: string, value: unknown): Promise<void> {
-  const dir = path.join(root, ".viberouter");
+  const dir = path.join(root, ".costscope");
   await mkdir(dir, { recursive: true });
   await writeFile(path.join(dir, "last-scope.json"), `${JSON.stringify(value, null, 2)}\n`);
 }

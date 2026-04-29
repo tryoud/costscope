@@ -3,11 +3,11 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { CONFIG_DIR, CONFIG_FILE } from "../constants.js";
-import type { VibeRouterConfig } from "../types.js";
+import type { CostScopeConfig } from "../types.js";
 import { defaultConfig } from "./defaultConfig.js";
 import { validateConfig } from "./validateConfig.js";
 
-export async function loadConfig(rootPath: string, configPath?: string): Promise<VibeRouterConfig> {
+export async function loadConfig(rootPath: string, configPath?: string): Promise<CostScopeConfig> {
   const finalPath = configPath ?? path.join(rootPath, CONFIG_DIR, CONFIG_FILE);
   try {
     const raw = await readFile(finalPath, "utf8");

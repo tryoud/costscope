@@ -75,7 +75,7 @@ export interface CostEstimate {
   reason: string[];
 }
 
-export interface VibeRouterConfig {
+export interface CostScopeConfig {
   version: 1;
   project: {
     type: "auto" | ProjectType;
