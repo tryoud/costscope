@@ -16,8 +16,8 @@ export function decideTier(classification: TaskClassification, fileScope: FileSc
   }
 
   if (fileScope.allowedFiles.length === 0) {
-    const tier = classification.risk === "low" ? "balanced" : "premium";
-    reason.push("No clear allowed file scope was found.");
+    const tier = classification.risk === "low" ? "cheap" : "premium";
+    reason.push("No clear allowed file scope was found; manual confirmation required.");
     return { tier, reason };
   }
 
