@@ -40,8 +40,8 @@ export const defaultConfig: CostScopeConfig = {
   },
   providers: {
     cheap: {
-      executor: "aider",
-      model: "mistral/codestral-latest"
+      executor: "vibe",
+      model: "codestral-latest"
     },
     balanced: {
       executor: "aider",
