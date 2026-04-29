@@ -32,13 +32,16 @@ const defaultProviders: Providers = {
   }
 };
 
-// student — maximum value, avoids expensive models entirely
+// student — maximum value for students with Mistral le Chat Pro (~53 % off subscription).
+// cheap tier uses vibe (Devstral 2) via a Codestral API key from Studio → Codestral → API keys.
+// See docs/student-preset.md for setup instructions.
 const studentProviders: Providers = {
   "scope-resolver": {
     executor: "openrouter",
     model: "google/gemini-2.0-flash-lite",
     apiKey: "${OPENROUTER_API_KEY}"
   },
+  // vibe uses MISTRAL_API_KEY (Codestral key from le Chat Pro); model is Devstral 2 inside the CLI
   cheap: {
     executor: "vibe",
     model: "codestral-latest"
