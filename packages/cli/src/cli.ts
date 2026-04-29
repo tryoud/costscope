@@ -74,11 +74,16 @@ export function createProgram(): Command {
     .option("--no-interactive", "Skip wizard, write default config without prompts")
     .action(async (options: { force?: boolean; interactive?: boolean }) => {
       const global = normalizeGlobalOptions(program.opts<GlobalOptions>());
-      await printResult(
-        "Initialized CostScope config",
-        initCommand({ root: global.root, force: options.force, interactive: options.interactive }),
-        global.json
-      );
+      const useWizard = (options.interactive ?? process.stdin.isTTY) && !global.json;
+      if (useWizard) {
+        await initCommand({ root: global.root, force: options.force, interactive: true });
+      } else {
+        await printResult(
+          "Initialized CostScope config",
+          initCommand({ root: global.root, force: options.force, interactive: false }),
+          global.json
+        );
+      }
     });
 
   program
