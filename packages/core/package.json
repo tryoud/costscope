@@ -1,8 +1,11 @@
 {
   "name": "@costscope/core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "license": "Apache-2.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/tryoud/costscope.git",
@@ -33,7 +36,8 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts",
     "test": "vitest run",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "prepack": "pnpm build"
   },
   "dependencies": {
     "execa": "^9.6.0",

@@ -29,13 +29,13 @@ importers:
       commander:
         specifier: ^14.0.2
         version: 14.0.3
+      execa:
+        specifier: ^9.6.0
+        version: 9.6.1
       picocolors:
         specifier: ^1.1.1
         version: 1.1.1
     devDependencies:
-      execa:
-        specifier: ^9.6.0
-        version: 9.6.1
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/node@20.19.39)

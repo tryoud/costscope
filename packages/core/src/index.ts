@@ -3,6 +3,8 @@
 export * from "./types.js";
 export * from "./config/defaultConfig.js";
 export * from "./config/loadConfig.js";
+export * from "./config/resolveApiKey.js";
+export * from "./config/resolveProvider.js";
 export * from "./config/writeConfig.js";
 export * from "./config/validateConfig.js";
 export * from "./project/detectProject.js";
@@ -10,6 +12,7 @@ export * from "./project/detectPackageManager.js";
 export * from "./project/detectCommands.js";
 export * from "./project/scanProjectTree.js";
 export * from "./classify/classifyTask.js";
+export * from "./plan/planExecution.js";
 export * from "./scope/planFileScope.js";
 export * from "./scope/forbiddenFiles.js";
 export * from "./scope/validateFileScope.js";

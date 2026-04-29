@@ -11,6 +11,11 @@ export async function getChangedFiles(rootPath: string): Promise<string[]> {
   return [...new Set([...unstaged, ...staged, ...untracked])].sort();
 }
 
+export async function getChangedFilesFromBase(rootPath: string, baseRef: string): Promise<string[]> {
+  const changed = await gitLines(rootPath, ["diff", "--name-only", `${baseRef}...HEAD`]);
+  return [...new Set(changed)].sort();
+}
+
 export async function getGitDiff(rootPath: string): Promise<string> {
   const [unstaged, staged] = await Promise.all([
     gitText(rootPath, ["diff"]),

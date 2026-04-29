@@ -37,5 +37,23 @@ export const defaultConfig: CostScopeConfig = {
     lint: null,
     test: null,
     typecheck: null
+  },
+  providers: {
+    cheap: {
+      executor: "aider",
+      model: "mistral/codestral-latest"
+    },
+    balanced: {
+      executor: "aider",
+      model: "anthropic/claude-haiku-4-5"
+    },
+    premium: {
+      executor: "claude-code",
+      model: "claude-sonnet-4-6"
+    },
+    planner: {
+      executor: "anthropic-api",
+      model: "claude-sonnet-4-6"
+    }
   }
 };

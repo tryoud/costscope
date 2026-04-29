@@ -7,7 +7,22 @@ describe("createProgram", () => {
   it("registers phase 1-4 commands", () => {
     const commands = createProgram().commands.map((command) => command.name());
     expect(commands).toEqual(
-      expect.arrayContaining(["init", "scan", "classify", "scope", "route", "prompt", "review-prompt", "check-diff", "cost"])
+      expect.arrayContaining([
+        "autopilot",
+        "init",
+        "scan",
+        "classify",
+        "scope",
+        "route",
+        "plan",
+        "prompt",
+        "review-prompt",
+        "check-diff",
+        "guard",
+        "run",
+        "orchestrate",
+        "cost"
+      ])
     );
   });
 });
