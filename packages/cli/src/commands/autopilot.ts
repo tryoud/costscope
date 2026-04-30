@@ -10,6 +10,7 @@ export interface AutopilotOptions {
   config?: string;
   model?: string;
   dryRun?: boolean;
+  yes?: boolean;
   maxTasks?: number;
   noCheck?: boolean;
   noReviewPrompt?: boolean;
@@ -49,7 +50,7 @@ export async function autopilotCommand(goal: string, options: AutopilotOptions) 
 
       const task = plan.tasks.find((candidate) => candidate.id === taskId);
       if (!task) continue;
-      if (!task.route.autoRunAllowed) {
+      if (!task.route.autoRunAllowed && !options.yes) {
         return finish(goal, options, plan, batches, results, true, [`Stopped before ${taskId} because the route is not auto-run safe.`]);
       }
 

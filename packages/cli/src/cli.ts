@@ -4,7 +4,10 @@
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { Command } from "commander";
+import pc from "picocolors";
 import type { Tier } from "@costscope/core";
+import { checkUpdate } from "./update/checkUpdate.js";
+import { startRepl } from "./repl/startRepl.js";
 import { autopilotCommand } from "./commands/autopilot.js";
 import { checkDiffCommand } from "./commands/checkDiff.js";
 import { classifyCommand } from "./commands/classify.js";
@@ -323,6 +326,55 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+async function warnIfNoConfig(root: string): Promise<void> {
+  const { access } = await import("node:fs/promises");
+  const configPath = path.join(root, ".costscope", "config.json");
+  try {
+    await access(configPath);
+  } catch {
+    console.error(
+      `${pc.yellow("⚠")} No config found in ${pc.cyan(".costscope/config.json")}\n` +
+      `  Run ${pc.cyan("costscope init")} to set up API keys and model preset.\n`
+    );
+  }
+}
+
+const KNOWN_COMMANDS = new Set([
+  "autopilot", "init", "scan", "classify", "scope", "route", "plan",
+  "prompt", "review-prompt", "check-diff", "guard", "run", "orchestrate", "cost",
+  "--help", "-h", "--version", "-V"
+]);
+
 if (import.meta.url === `file://${process.argv[1]}`) {
-  await createProgram().parseAsync();
+  const firstArg = process.argv[2];
+  const isJson = process.argv.includes("--json");
+
+  // No arguments at all → launch interactive REPL (TTY only)
+  if (!firstArg) {
+    const root = path.resolve(process.cwd());
+    const configIdx = process.argv.indexOf("--config");
+    const config = configIdx !== -1 ? process.argv[configIdx + 1] : undefined;
+    if (!process.stdin.isTTY) {
+      createProgram().help();
+    } else {
+      await warnIfNoConfig(root);
+      checkUpdate().catch(() => {});
+      await startRepl(root, config);
+    }
+  } else {
+    // Bare task string → inject autopilot
+    if (!firstArg.startsWith("-") && !KNOWN_COMMANDS.has(firstArg)) {
+      process.argv.splice(2, 0, "autopilot");
+      if (!isJson) {
+        console.error(
+          `${pc.bgCyan(pc.black("  costscope  "))} ${pc.bold("autopilot")}  ${pc.dim("— plan → scope → run → diff-check")}\n` +
+          `  ${pc.dim("Other modes:")} costscope run · costscope plan · costscope route · --dry-run\n`
+        );
+      }
+    }
+
+    const updateCheck = isJson ? Promise.resolve() : checkUpdate();
+    await createProgram().parseAsync();
+    await updateCheck;
+  }
 }
