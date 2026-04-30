@@ -10,9 +10,24 @@ export interface AutopilotOptions {
   config?: string;
   model?: string;
   dryRun?: boolean;
+  yes?: boolean;
   maxTasks?: number;
   noCheck?: boolean;
   noReviewPrompt?: boolean;
+  onProgress?: (progress: AutopilotProgress) => void;
+}
+
+export interface AutopilotProgress {
+  type: "plan" | "start" | "task_start" | "task_complete" | "stopped";
+  goal: string;
+  taskId?: string;
+  taskIndex?: number;
+  totalTasks?: number;
+  summary?: string;
+}
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export async function autopilotCommand(goal: string, options: AutopilotOptions) {
@@ -20,6 +35,12 @@ export async function autopilotCommand(goal: string, options: AutopilotOptions) 
   const plan = planExecution(goal, project, config);
   const batches = executionBatches(plan.tasks);
   const maxTasks = options.maxTasks ?? 10;
+
+  // Collect all task IDs for progress reporting
+  const allTaskIds = batches.flatMap((b) => b.taskIds);
+  const totalTasks = allTaskIds.length;
+
+  options.onProgress?.({ type: "plan", goal, totalTasks });
 
   if (options.dryRun) {
     return {
@@ -41,17 +62,26 @@ export async function autopilotCommand(goal: string, options: AutopilotOptions) 
   }
 
   const results: Array<{ taskId: string; result: RunCommandResult }> = [];
+  let taskIndex = 0;
+
+  options.onProgress?.({ type: "start", goal, totalTasks });
+
   for (const batch of batches) {
     for (const taskId of batch.taskIds) {
       if (results.length >= maxTasks) {
+        options.onProgress?.({ type: "stopped", goal, summary: `Stopped after reaching --max-tasks ${maxTasks}.` });
         return finish(goal, options, plan, batches, results, true, [`Stopped after reaching --max-tasks ${maxTasks}.`]);
       }
 
       const task = plan.tasks.find((candidate) => candidate.id === taskId);
       if (!task) continue;
-      if (!task.route.autoRunAllowed) {
+      if (!task.route.autoRunAllowed && !options.yes) {
+        options.onProgress?.({ type: "stopped", goal, taskId, taskIndex, totalTasks, summary: `Stopped before ${taskId} - not auto-run safe` });
         return finish(goal, options, plan, batches, results, true, [`Stopped before ${taskId} because the route is not auto-run safe.`]);
       }
+
+      taskIndex++;
+      options.onProgress?.({ type: "task_start", goal, taskId, taskIndex, totalTasks, summary: task.task });
 
       const result = await runCommand(task.task, {
         root: options.root,
@@ -62,16 +92,21 @@ export async function autopilotCommand(goal: string, options: AutopilotOptions) 
       });
       results.push({ taskId, result });
 
+      options.onProgress?.({ type: "task_complete", goal, taskId, taskIndex, totalTasks });
+
       if ("execution" in result && result.execution && result.execution.exitCode !== 0) {
+        options.onProgress?.({ type: "stopped", goal, taskId, taskIndex, totalTasks, summary: `Worker exited with code ${result.execution.exitCode}` });
         return finish(goal, options, plan, batches, results, true, [`Stopped after ${taskId} because the worker exited with code ${result.execution.exitCode}.`]);
       }
 
       if ("diffResult" in result && result.diffResult && result.diffResult.verdict !== "pass") {
+        options.onProgress?.({ type: "stopped", goal, taskId, taskIndex, totalTasks, summary: `Diff check failed: ${result.diffResult.verdict}` });
         return finish(goal, options, plan, batches, results, true, [`Stopped after ${taskId} because diff check returned ${result.diffResult.verdict}.`]);
       }
     }
   }
 
+  options.onProgress?.({ type: "stopped", goal, taskIndex, totalTasks, summary: "Autopilot completed all tasks" });
   return finish(goal, options, plan, batches, results, false, ["Autopilot completed all auto-run-safe tasks."]);
 }
 
