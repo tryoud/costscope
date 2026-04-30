@@ -38,3 +38,4 @@ export * from "./skills/loadSkills.js";
 export * from "./promptsDir/loadCustomPrompts.js";
 export * from "./output/streaming.js";
 export * from "./config/loadUserConfig.js";
+export * from "./clarify/index.js";

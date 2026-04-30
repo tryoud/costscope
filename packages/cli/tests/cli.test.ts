@@ -23,9 +23,18 @@ describe("createProgram", () => {
         "orchestrate",
         "cost",
         "chat",
-        "mcp-server"
+        "mcp-server",
+        "clarify"
       ])
     );
+  });
+
+  it("registers clarify command with --force and --output", () => {
+    const c = createProgram().commands.find((c) => c.name() === "clarify");
+    expect(c).toBeDefined();
+    const flags = c?.options.map((o) => o.long);
+    expect(flags).toContain("--force");
+    expect(flags).toContain("--output");
   });
 
   it("registers chat command with profile/continue/resume options", () => {

@@ -7,6 +7,7 @@ import { Command } from "commander";
 import type { Tier } from "@costscope/core";
 import { autopilotCommand } from "./commands/autopilot.js";
 import { chatCommand } from "./commands/chat.js";
+import { clarifyCommand } from "./commands/clarify.js";
 import { mcpServerCommand } from "./commands/mcpServer.js";
 import type { AgentProfile } from "@costscope/core";
 import { checkDiffCommand } from "./commands/checkDiff.js";
@@ -250,6 +251,33 @@ export function createProgram(): Command {
         }),
         global.json
       );
+    });
+
+  program
+    .command("clarify")
+    .description("Ask the user 3-10 multiple-choice questions to refine a vague task")
+    .argument("<task>", "Task to clarify")
+    .option("--force", "Run even if the task does not appear vague")
+    .option("--output <file>", "Write the refined task to a file")
+    .action(async (task: string, options: { force?: boolean; output?: string }) => {
+      const global = normalizeGlobalOptions(program.opts<GlobalOptions>());
+      try {
+        const session = await clarifyCommand(task, {
+          root: global.root,
+          config: global.config,
+          force: options.force,
+          output: options.output,
+          json: global.json
+        });
+        if (global.json) {
+          printJson(session);
+        } else {
+          printHuman("Refined task", { refinedTask: session.refinedTask });
+        }
+      } catch (error) {
+        console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 1;
+      }
     });
 
   program
