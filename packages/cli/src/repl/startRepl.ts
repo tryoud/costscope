@@ -3,11 +3,13 @@
 import React from "react";
 import { render } from "ink";
 import { execa } from "execa";
+import readline from "node:readline";
 import { ReplApp } from "./ReplApp.js";
 import { ReplHistory } from "./history.js";
 import { parseSlashInput, COMMANDS } from "./commands.js";
 import { autopilotCommand, type AutopilotProgress, type RunCommandResult, type AutopilotOptions } from "../commands/autopilot.js";
-import { getChangedFiles, isGitRepository } from "@costscope/core";
+import { getChangedFiles, isGitRepository, planExecution, detectProject, loadConfig } from "@costscope/core";
+import type { PlannedTask } from "@costscope/core";
 
 // Streaming state for REPL
 export interface StreamingState {
@@ -39,6 +41,24 @@ import type { ModelPreset } from "@costscope/core";
 import { checkUpdate } from "../update/checkUpdate.js";
 
 const VERSION = "0.2.0";
+
+// Readline interface for confirmation prompts
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
+/**
+ * Ask user for confirmation in the REPL.
+ * Returns true if user confirms (y/yes), false otherwise.
+ */
+async function askConfirm(prompt: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    rl.question(`${prompt} (y/n) `, (answer) => {
+      resolve(answer.trim().toLowerCase().startsWith("y"));
+    });
+  });
+}
 
 export interface ReplResult {
   status: "done" | "stopped" | "failed" | "info" | "bash";
@@ -189,8 +209,26 @@ async function runInput(input: string, root: string, config?: string, onProgress
   try {
     setStreamingState({ active: true, currentGoal: trimmed, progress: null });
     
+    // In REPL mode, check tasks first and ask for confirmation if needed
+    const [project, loadedConfig] = await Promise.all([detectProject(root), loadConfig(root, config)]);
+    const plan = planExecution(trimmed, project, loadedConfig);
+    
+    // Find first non-auto-run-safe task
+    const blockedTask = plan.tasks.find((t) => !t.route.autoRunAllowed);
+    
+    let yes = true;
+    if (blockedTask) {
+      // Ask for confirmation in REPL
+      const confirmed = await askConfirm(`Task "${blockedTask.task}" requires manual review (tier: ${blockedTask.route.tier}, risk: ${blockedTask.classification.risk}). Proceed anyway?`);
+      if (!confirmed) {
+        setStreamingState({ active: false, currentGoal: "", progress: null });
+        return { status: "stopped", summary: "User cancelled - task requires manual review" };
+      }
+      yes = true; // User confirmed, proceed
+    }
+    
     const result = await autopilotCommand(trimmed, {
-      root, config, yes: true, noReviewPrompt: true,
+      root, config, yes, noReviewPrompt: true,
       onProgress: (progress: AutopilotProgress) => {
         setStreamingState({ progress });
         onProgress?.(progress);

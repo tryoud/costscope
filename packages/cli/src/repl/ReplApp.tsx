@@ -7,6 +7,7 @@ import { getCompletions, type ReplCommand } from "./commands.js";
 import { getLiveHint, type ReplResult, type StreamingState } from "./startRepl.js";
 import type { ReplHistory } from "./history.js";
 import type { AutopilotProgress } from "../commands/autopilot.js";
+import { countTokens } from "@costscope/core";
 
 interface Props {
   onSubmit: (input: string, onProgress?: (progress: AutopilotProgress) => void) => Promise<ReplResult>;
@@ -155,7 +156,11 @@ export function ReplApp({ onSubmit, version, projectType, history, getStreamingS
       const result = await onSubmit(trimmed, (progress: AutopilotProgress) => {
         setStreamingProgress(progress);
       });
-      tokenRef.current += Math.ceil((trimmed.length + (result.summary?.length ?? 0)) / 4);
+      // Use real token counting
+      const inputTokens = countTokens(trimmed);
+      const outputTokens = result.summary ? countTokens(result.summary) : 0;
+      const resultLinesTokens = result.lines ? result.lines.reduce((sum, line) => sum + countTokens(line), 0) : 0;
+      tokenRef.current += inputTokens + outputTokens + resultLinesTokens;
       setTokens(tokenRef.current);
       if (result.summary === "__clear__") {
         setSessionHistory([]);

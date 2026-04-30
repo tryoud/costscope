@@ -4,7 +4,7 @@ export type ProjectType = "astro" | "nextjs" | "vite" | "react" | "wordpress" | 
 export type PackageManager = "pnpm" | "npm" | "yarn" | "bun" | "unknown";
 export type RiskLevel = "low" | "medium" | "high" | "critical";
 export type Tier = "cheap" | "balanced" | "premium" | "custom";
-export type Executor = "aider" | "vibe" | "local" | "claude-code" | "anthropic-api" | "openai-api";
+export type Executor = "aider" | "vibe" | "local" | "claude-code" | "anthropic-api" | "openai-api" | "mistral-api" | "openrouter";
 export type MergeRisk = "low" | "medium" | "high";
 
 export interface ProjectInfo {
