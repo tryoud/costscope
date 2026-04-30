@@ -9,6 +9,7 @@ export interface ReplCommand {
 export const COMMANDS: ReplCommand[] = [
   { aliases: ["/help"],     description: "Show available commands",                  handler: "help"    },
   { aliases: ["/status"],   description: "Show git status (quick)",                   handler: "status"  },
+  { aliases: ["/model"],    description: "Switch worker model for current tier",       handler: "model"   },
   { aliases: ["/plan"],     description: "Show execution plan without running",       handler: "plan"    },
   { aliases: ["/route"],    description: "Show routing decision for a task",          handler: "route"   },
   { aliases: ["/scope"],    description: "Show file scope for a task",                handler: "scope"   },

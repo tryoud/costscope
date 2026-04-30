@@ -100,7 +100,7 @@ async function handleCommand(input: string, root: string, config?: string): Prom
 
       case "update": {
         await checkUpdate({ force: true });
-        return { status: "info", summary: "Update check complete — see output above" };
+        return { status: "info", summary: "Update check complete — notification shown above if update available" };
       }
 
       case "exit":
@@ -162,6 +162,38 @@ async function handleCommand(input: string, root: string, config?: string): Prom
           `premium:  ${cfg.providers?.premium?.model ?? "—"}`,
         ];
         return { status: "info", summary: "Config", lines };
+      }
+
+      case "model": {
+        const tier = parsed.args?.trim().toLowerCase() as "cheap" | "balanced" | "premium";
+        const validTiers = ["cheap", "balanced", "premium"];
+        if (!tier || !validTiers.includes(tier)) {
+          return { status: "failed", summary: "/model requires tier: cheap · balanced · premium" };
+        }
+        
+        const cfg = await loadConfig(root, config);
+        const currentModel = cfg.providers?.[tier]?.model ?? "—";
+        
+        if (!parsed.args.includes(" ")) {
+          // Just show current model
+          return { status: "info", summary: `${tier} model: ${currentModel}` };
+        }
+        
+        // Set new model
+        const newModel = parsed.args.split(" ")[1];
+        if (!newModel) {
+          return { status: "failed", summary: `Specify model: /model ${tier} <model-name>` };
+        }
+        
+        await writeConfig(root, {
+          ...cfg,
+          providers: {
+            ...cfg.providers,
+            [tier]: { ...cfg.providers?.[tier], model: newModel }
+          }
+        }, true);
+        
+        return { status: "done", summary: `Set ${tier} model → ${newModel}` };
       }
 
       case "preset": {

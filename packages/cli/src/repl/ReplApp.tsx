@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import { Box, Text, useApp, useInput, useStdout } from "ink";
+import { Box, Text, useApp, useInput, useStdout, useStdin } from "ink";
 import TextInput from "ink-text-input";
 import { getCompletions, type ReplCommand } from "./commands.js";
 import { getLiveHint, type ReplResult, type StreamingState } from "./startRepl.js";
@@ -113,34 +113,64 @@ export function ReplApp({ onSubmit, version, projectType, history, getStreamingS
     setSelectedIdx(0);
   }, []);
 
-  useInput((ch, key) => {
-    if (state !== "idle") return;
+  // Only use useInput when we need to intercept navigation keys
+  // For all other keys (backspace, delete, arrows, characters), let them pass to TextInput
+  // We do this by only calling useInput when we have completions to show
+  const shouldInterceptInput = completions.length > 0 || navigatingRef.current;
 
-    if (key.upArrow && completions.length === 0) {
-      if (!navigatingRef.current) {
-        history.startNavigation(input);
-        navigatingRef.current = true;
+  if (shouldInterceptInput && state === "idle") {
+    useInput((ch, key) => {
+      // Handle Up arrow: completions menu or history navigation
+      if (key.upArrow) {
+        if (completions.length > 0) {
+          setSelectedIdx((i) => (i - 1 + completions.length) % completions.length);
+          return;
+        }
+        if (!navigatingRef.current) {
+          history.startNavigation(input);
+          navigatingRef.current = true;
+        }
+        const prev = history.previous();
+        if (prev !== null) {
+          setInput(prev);
+          navigatingRef.current = true;
+        }
+        return;
       }
-      const prev = history.previous();
-      if (prev !== null) setInput(prev);
-      return;
-    }
-    if (key.downArrow && navigatingRef.current) {
-      const next = history.next();
-      if (next !== null) setInput(next);
-      return;
-    }
 
-    if (completions.length > 0) {
-      if (key.downArrow) setSelectedIdx((i) => (i + 1) % completions.length);
-      else if (key.upArrow) setSelectedIdx((i) => (i - 1 + completions.length) % completions.length);
-      else if (key.tab) {
+      // Handle Down arrow: completions menu or history navigation
+      if (key.downArrow) {
+        if (completions.length > 0) {
+          setSelectedIdx((i) => (i + 1) % completions.length);
+          return;
+        }
+        if (navigatingRef.current) {
+          const next = history.next();
+          if (next !== null) {
+            setInput(next);
+          } else {
+            navigatingRef.current = false;
+          }
+        }
+        return;
+      }
+
+      // Handle Tab: autocomplete
+      if (key.tab && completions.length > 0) {
         const alias = completions[selectedIdx]?.aliases[0] ?? "";
         setInput(alias + " ");
         setCompletions([]);
+        navigatingRef.current = false;
+        return;
       }
-    }
-  });
+
+      // Reset navigation on character input
+      if (ch && navigatingRef.current) {
+        navigatingRef.current = false;
+        history.reset();
+      }
+    });
+  }
 
   const handleSubmit = useCallback(async (value: string) => {
     const trimmed = value.trim();
@@ -269,6 +299,12 @@ export function ReplApp({ onSubmit, version, projectType, history, getStreamingS
             <Text dimColor>{runningInput}</Text>
           )}
         </Box>
+        {/* Help hint for multiline input */}
+        {state === "idle" && input.includes("\n") && (
+          <Box paddingLeft={4} paddingBottom={1}>
+            <Text dimColor>Press Ctrl+Enter to submit, Enter for new line</Text>
+          </Box>
+        )}
         <Text dimColor>{"─".repeat(cols)}</Text>
       </Box>
 
