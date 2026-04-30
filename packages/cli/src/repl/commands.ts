@@ -8,8 +8,13 @@ export interface ReplCommand {
 
 export const COMMANDS: ReplCommand[] = [
   { aliases: ["/help"],     description: "Show available commands",                  handler: "help"    },
+  { aliases: ["/theme"],    description: "Switch color theme: dark · light · dracula · solarized", handler: "theme"  },
   { aliases: ["/status"],   description: "Show git status (quick)",                   handler: "status"  },
   { aliases: ["/model"],    description: "Switch worker model for current tier",       handler: "model"   },
+  { aliases: ["/keybindings", "/keys"], description: "Show keyboard shortcuts",          handler: "keybindings" },
+  { aliases: ["/history"],  description: "Show session history",                  handler: "history"  },
+  { aliases: ["/sessions"],  description: "List and switch sessions",              handler: "sessions" },
+  { aliases: ["/new"],      description: "Start a new session",                  handler: "new"     },
   { aliases: ["/plan"],     description: "Show execution plan without running",       handler: "plan"    },
   { aliases: ["/route"],    description: "Show routing decision for a task",          handler: "route"   },
   { aliases: ["/scope"],    description: "Show file scope for a task",                handler: "scope"   },

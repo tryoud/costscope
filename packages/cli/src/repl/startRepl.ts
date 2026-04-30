@@ -10,6 +10,8 @@ import { parseSlashInput, COMMANDS } from "./commands.js";
 import { autopilotCommand, type AutopilotProgress, type RunCommandResult, type AutopilotOptions } from "../commands/autopilot.js";
 import { getChangedFiles, isGitRepository, planExecution, detectProject, loadConfig } from "@costscope/core";
 import type { PlannedTask } from "@costscope/core";
+import { getThemeNames, setCurrentTheme, getCurrentTheme, cycleTheme } from "./themes.js";
+import { createSession, loadActiveSession, addMessage, clearSession, listSessions, switchSession, deleteSession, getSessionContext, type ReplSession } from "./session.js";
 
 // Streaming state for REPL
 export interface StreamingState {
@@ -106,12 +108,82 @@ async function handleCommand(input: string, root: string, config?: string): Prom
       case "exit":
         process.exit(0);
 
+      case "theme": {
+        const themeArg = parsed.args?.trim().toLowerCase();
+        const themes = getThemeNames();
+        
+        if (!themeArg) {
+          // Show current theme
+          const current = getCurrentTheme();
+          return { status: "info", summary: `Current theme: ${current.name}`, lines: themes.map(t => `  - ${t}`) };
+        }
+        
+        if (themeArg === "cycle" || themeArg === "next") {
+          const newTheme = cycleTheme();
+          return { status: "done", summary: `Theme → ${newTheme}` };
+        }
+        
+        if (!themes.includes(themeArg as any)) {
+          return { status: "failed", summary: `Unknown theme. Available: ${themes.join(" · ")}` };
+        }
+        
+        setCurrentTheme(themeArg as any);
+        return { status: "done", summary: `Theme → ${themeArg}` };
+      }
+
       case "clear":
         return { status: "info", summary: "__clear__" };
+
+      case "keybindings": {
+        const lines = [
+          "Navigation:",
+          "  ↑↓         Navigate history / completions",
+          "  Tab        Autocomplete",
+          "",
+          "Editing:",
+          "  Backspace  Delete previous character",
+          "  Delete     Delete next character",
+          "  ←→         Move cursor",
+          "  Home/End   Move to start/end of line (Ctrl+A / Ctrl+E)",
+          "",
+          "Actions:",
+          "  Enter      New line (in multiline mode)",
+          "  Ctrl+Enter Submit command",
+          "  Esc        Clear input / cancel",
+          "  Ctrl+C     Exit REPL",
+          "",
+          "Commands:",
+          "  /help      Show this help",
+          "  /exit      Exit REPL",
+          "  /clear     Clear session history",
+        ];
+        return { status: "info", summary: "Keyboard Shortcuts", lines };
+      }
 
       case "help": {
         const lines = COMMANDS.map((c) => `${c.aliases.join(", ").padEnd(18)} ${c.description}`);
         return { status: "info", summary: "Commands", lines };
+      }
+
+      case "history": {
+        // Will be handled with session context - for now just return info
+        return { status: "info", summary: "Use /sessions to view history" };
+      }
+
+      case "sessions": {
+        const sessions = await listSessions();
+        if (sessions.length === 0) {
+          return { status: "info", summary: "No previous sessions" };
+        }
+        const lines = sessions.map((s, i) => 
+          `  [${i + 1}] ${new Date(s.createdAt).toLocaleDateString()} - ${s.messageCount} messages, ${s.tokenCount} tokens`
+        );
+        return { status: "info", summary: `${sessions.length} session(s)`, lines };
+      }
+
+      case "new": {
+        await createSession();
+        return { status: "done", summary: "New session started" };
       }
 
       case "plan": {

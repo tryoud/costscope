@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import { Box, Text, useApp, useInput, useStdout, useStdin } from "ink";
-import TextInput from "ink-text-input";
+import { Box, Text, useApp, useStdout } from "ink";
 import { getCompletions, type ReplCommand } from "./commands.js";
 import { getLiveHint, type ReplResult, type StreamingState } from "./startRepl.js";
 import type { ReplHistory } from "./history.js";
 import type { AutopilotProgress } from "../commands/autopilot.js";
 import { countTokens } from "@costscope/core";
+import { InputBox } from "./InputBox.js";
+import { getCurrentTheme } from "./themes.js";
 
 interface Props {
   onSubmit: (input: string, onProgress?: (progress: AutopilotProgress) => void) => Promise<ReplResult>;
@@ -44,12 +45,6 @@ const OTTER_RUNNING: string[][] = [
   [" ·~~~· ", "(◉ ~ ◉)", " ·▀▀▀· "],
   [" ·███· ", "(◉ ~ ◉)", " ·~~~· "],
 ];
-
-const TIER_COLOR: Record<string, "green" | "yellow" | "red"> = {
-  cheap: "green",
-  balanced: "yellow",
-  premium: "red",
-};
 
 function getMode(value: string): InputMode {
   if (value.startsWith("/")) return "/";
@@ -90,6 +85,9 @@ export function ReplApp({ onSubmit, version, projectType, history, getStreamingS
   const hint = getLiveHint(input, projectType);
   const isStreaming = streamingProgress !== null;
 
+  // Apply theme
+  const theme = getCurrentTheme();
+
   // Determine otter animation based on streaming state
   const frames = isStreaming ? OTTER_RUNNING : (state === "running" ? OTTER_RUNNING : OTTER_FRAMES);
 
@@ -112,65 +110,6 @@ export function ReplApp({ onSubmit, version, projectType, history, getStreamingS
     setCompletions(getCompletions(value));
     setSelectedIdx(0);
   }, []);
-
-  // Only use useInput when we need to intercept navigation keys
-  // For all other keys (backspace, delete, arrows, characters), let them pass to TextInput
-  // We do this by only calling useInput when we have completions to show
-  const shouldInterceptInput = completions.length > 0 || navigatingRef.current;
-
-  if (shouldInterceptInput && state === "idle") {
-    useInput((ch, key) => {
-      // Handle Up arrow: completions menu or history navigation
-      if (key.upArrow) {
-        if (completions.length > 0) {
-          setSelectedIdx((i) => (i - 1 + completions.length) % completions.length);
-          return;
-        }
-        if (!navigatingRef.current) {
-          history.startNavigation(input);
-          navigatingRef.current = true;
-        }
-        const prev = history.previous();
-        if (prev !== null) {
-          setInput(prev);
-          navigatingRef.current = true;
-        }
-        return;
-      }
-
-      // Handle Down arrow: completions menu or history navigation
-      if (key.downArrow) {
-        if (completions.length > 0) {
-          setSelectedIdx((i) => (i + 1) % completions.length);
-          return;
-        }
-        if (navigatingRef.current) {
-          const next = history.next();
-          if (next !== null) {
-            setInput(next);
-          } else {
-            navigatingRef.current = false;
-          }
-        }
-        return;
-      }
-
-      // Handle Tab: autocomplete
-      if (key.tab && completions.length > 0) {
-        const alias = completions[selectedIdx]?.aliases[0] ?? "";
-        setInput(alias + " ");
-        setCompletions([]);
-        navigatingRef.current = false;
-        return;
-      }
-
-      // Reset navigation on character input
-      if (ch && navigatingRef.current) {
-        navigatingRef.current = false;
-        history.reset();
-      }
-    });
-  }
 
   const handleSubmit = useCallback(async (value: string) => {
     const trimmed = value.trim();
@@ -209,8 +148,11 @@ export function ReplApp({ onSubmit, version, projectType, history, getStreamingS
   // Border — label at top-right like Vibe, no corner chars
   const tierLabel = hint.tier ? ` ${hint.tier} · ${hint.model} ` : " default ";
   const topFill = Math.max(0, cols - tierLabel.length - 1);
-  const modeColor = mode === "!" ? "yellow" : "cyan";
+  const modeColor = mode === "!" ? "yellow" : theme.promptColor as any;
   const promptChar = state === "running" ? "⠋" : mode;
+  
+  // Tier colors from theme
+  const tierColorMap = theme.tierColor as Record<string, string>;
 
   // Streaming progress display
   const progressText = streamingProgress ?
@@ -227,12 +169,12 @@ export function ReplApp({ onSubmit, version, projectType, history, getStreamingS
       <Box marginTop={1} marginBottom={1}>
         <Box flexDirection="column" marginRight={2} width={9}>
           {otter.map((line, i) => (
-            <Text key={i} color="cyan">{line}</Text>
+            <Text key={i} color={theme.otterColor as any}>{line}</Text>
           ))}
         </Box>
         <Box flexDirection="column" justifyContent="center">
           <Box>
-            <Text bold color="cyan">CostScope </Text>
+            <Text bold color={theme.info as any}>CostScope </Text>
             <Text>v{version}  </Text>
             <Text dimColor>·  {projectType}  ·  autopilot mode</Text>
           </Box>
@@ -248,11 +190,11 @@ export function ReplApp({ onSubmit, version, projectType, history, getStreamingS
             <Text dimColor>{entry.input}</Text>
           </Box>
           <Box marginLeft={2} flexDirection="column">
-            {entry.result.status === "done"    && <Text color="green">✓ {entry.result.summary}</Text>}
-            {entry.result.status === "stopped" && <Text color="yellow">⚠ {entry.result.summary}</Text>}
-            {entry.result.status === "failed"  && <Text color="red">✗ {entry.result.summary}</Text>}
-            {entry.result.status === "bash"    && <Text color="yellow">$ {entry.result.summary.replace(/^! /, "")}</Text>}
-            {entry.result.status === "info"    && <Text color="cyan">{entry.result.summary}</Text>}
+            {entry.result.status === "done"    && <Text color={theme.success as any}>✓ {entry.result.summary}</Text>}
+            {entry.result.status === "stopped" && <Text color={theme.warning as any}>⚠ {entry.result.summary}</Text>}
+            {entry.result.status === "failed"  && <Text color={theme.error as any}>✗ {entry.result.summary}</Text>}
+            {entry.result.status === "bash"    && <Text color={theme.warning as any}>$ {entry.result.summary.replace(/^! /, "")}</Text>}
+            {entry.result.status === "info"    && <Text color={theme.info as any}>{entry.result.summary}</Text>}
             {entry.result.lines?.map((line, j) => (
               <Text key={j} dimColor>{line}</Text>
             ))}
@@ -265,7 +207,7 @@ export function ReplApp({ onSubmit, version, projectType, history, getStreamingS
         <Box flexDirection="column" marginBottom={0}>
           {completions.map((cmd, i) => (
             <Box key={cmd.handler} paddingX={1}>
-              <Text bold={i === selectedIdx} inverse={i === selectedIdx}>
+              <Text bold={i === selectedIdx} inverse={i === selectedIdx} color={i === selectedIdx ? theme.promptColor as any : "white"}>
                 {(cmd.aliases[0] ?? "").padEnd(14)}
               </Text>
               <Text dimColor>  {cmd.description}</Text>
@@ -277,7 +219,7 @@ export function ReplApp({ onSubmit, version, projectType, history, getStreamingS
       {/* Streaming progress indicator */}
       {isStreaming && progressText && (
         <Box marginBottom={1} paddingX={2}>
-          <Text color="cyan">✦ {progressText}</Text>
+          <Text color={theme.info as any}>✦ {progressText}</Text>
         </Box>
       )}
 
@@ -286,25 +228,34 @@ export function ReplApp({ onSubmit, version, projectType, history, getStreamingS
         <Box>
           <Text dimColor>{"─".repeat(topFill)}</Text>
           {hint.tier
-            ? <Text color={TIER_COLOR[hint.tier] ?? "white"}>{tierLabel}</Text>
+            ? <Text color={tierColorMap[hint.tier] ?? "white" as any}>{tierLabel}</Text>
             : <Text dimColor>{tierLabel}</Text>
           }
           <Text dimColor>{"─"}</Text>
         </Box>
-        <Box paddingX={2} height={3}>
-          <Text color={modeColor} bold>{promptChar} </Text>
+        <Box paddingX={2}>
           {state === "idle" ? (
-            <TextInput value={input} onChange={handleChange} onSubmit={handleSubmit} placeholder="" />
+            <InputBox
+              value={input}
+              onChange={handleChange}
+              onSubmit={() => handleSubmit(input)}
+              placeholder=""
+              history={history}
+              completions={completions.map(c => c.aliases[0])}
+              selectedCompletionIndex={selectedIdx}
+              onCompletionSelect={(idx) => setSelectedIdx(idx)}
+              mode={mode}
+            />
           ) : (
-            <Text dimColor>{runningInput}</Text>
+            <Text dimColor>{runningInput.split("\n").map((line, i) => (
+              <Box key={i}>
+                {i === 0 && <Text color={modeColor} bold>{promptChar} </Text>}
+                {i > 0 && <Text color="cyan" bold>  </Text>}
+                <Text>{line}</Text>
+              </Box>
+            ))}</Text>
           )}
         </Box>
-        {/* Help hint for multiline input */}
-        {state === "idle" && input.includes("\n") && (
-          <Box paddingLeft={4} paddingBottom={1}>
-            <Text dimColor>Press Ctrl+Enter to submit, Enter for new line</Text>
-          </Box>
-        )}
         <Text dimColor>{"─".repeat(cols)}</Text>
       </Box>
 
