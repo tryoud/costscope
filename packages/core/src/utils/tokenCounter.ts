@@ -54,7 +54,8 @@ function getTokenRatio(model: string): number {
       return ratio;
     }
   }
-  return TOKEN_RATIOS.default;
+  // Default to 4.0 tokens per character ratio
+  return 4.0;
 }
 
 /**

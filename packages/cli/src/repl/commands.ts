@@ -12,6 +12,7 @@ export const COMMANDS: ReplCommand[] = [
   { aliases: ["/status"],   description: "Show git status (quick)",                   handler: "status"  },
   { aliases: ["/model"],    description: "Switch worker model for current tier",       handler: "model"   },
   { aliases: ["/keybindings", "/keys"], description: "Show keyboard shortcuts",          handler: "keybindings" },
+  { aliases: ["/context"],  description: "Show current conversation context",      handler: "context" },
   { aliases: ["/history"],  description: "Show session history",                  handler: "history"  },
   { aliases: ["/sessions"],  description: "List and switch sessions",              handler: "sessions" },
   { aliases: ["/new"],      description: "Start a new session",                  handler: "new"     },

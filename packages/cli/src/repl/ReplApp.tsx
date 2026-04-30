@@ -9,12 +9,14 @@ import type { AutopilotProgress } from "../commands/autopilot.js";
 import { countTokens } from "@costscope/core";
 import { InputBox } from "./InputBox.js";
 import { getCurrentTheme } from "./themes.js";
+import type { ReplSession } from "./session.js";
 
 interface Props {
   onSubmit: (input: string, onProgress?: (progress: AutopilotProgress) => void) => Promise<ReplResult>;
   version: string;
   projectType: string;
   history: ReplHistory;
+  session?: ReplSession;
   getStreamingState?: () => StreamingState;
 }
 
@@ -262,7 +264,14 @@ export function ReplApp({ onSubmit, version, projectType, history, getStreamingS
       {/* Status bar */}
       <Box justifyContent="space-between" width={cols} paddingX={1}>
         <Text dimColor>{cwd}</Text>
-        <Text dimColor>{tokens.toLocaleString()} tokens</Text>
+        {session && (
+          <Text dimColor>
+            {session.messages.length} messages | {session.tokenCount.toLocaleString()} tokens
+          </Text>
+        )}
+        {!session && (
+          <Text dimColor>{tokens.toLocaleString()} tokens</Text>
+        )}
       </Box>
     </Box>
   );

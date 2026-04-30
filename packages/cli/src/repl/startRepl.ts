@@ -11,7 +11,21 @@ import { autopilotCommand, type AutopilotProgress, type RunCommandResult, type A
 import { getChangedFiles, isGitRepository, planExecution, detectProject, loadConfig } from "@costscope/core";
 import type { PlannedTask } from "@costscope/core";
 import { getThemeNames, setCurrentTheme, getCurrentTheme, cycleTheme } from "./themes.js";
-import { createSession, loadActiveSession, addMessage, clearSession, listSessions, switchSession, deleteSession, getSessionContext, type ReplSession } from "./session.js";
+import { 
+  createSession, 
+  loadActiveSession, 
+  addMessage, 
+  clearSession, 
+  listSessions, 
+  switchSession, 
+  deleteSession, 
+  getSessionContext,
+  formatContextForLLM,
+  addUserMessage,
+  addAssistantMessage,
+  getSessionSummary,
+  type ReplSession 
+} from "./session.js";
 
 // Streaming state for REPL
 export interface StreamingState {
@@ -33,12 +47,29 @@ export function getStreamingState(): StreamingState {
 export function setStreamingState(state: Partial<StreamingState>): void {
   Object.assign(streamingState, state);
 }
+
+// Global session state for REPL
+let globalSession: ReplSession | null = null;
+
+export function getCurrentSession(): ReplSession | null {
+  return globalSession;
+}
+
+export async function setCurrentSession(session: ReplSession): Promise<void> {
+  globalSession = session;
+}
+
+export async function loadOrCreateSession(): Promise<ReplSession> {
+  const session = await loadActiveSession();
+  globalSession = session;
+  return session;
+}
 import { planCommand } from "../commands/plan.js";
 import { routeCommand } from "../commands/route.js";
 import { scopeCommand } from "../commands/scope.js";
 import { scanCommand } from "../commands/scan.js";
 import { costCommand } from "../commands/cost.js";
-import { classifyTask, detectProject, loadConfig, applyPreset, writeConfig } from "@costscope/core";
+import { classifyTask, detectProject, loadConfig, applyPreset, writeConfig, countTokens } from "@costscope/core";
 import type { ModelPreset } from "@costscope/core";
 import { checkUpdate } from "../update/checkUpdate.js";
 
@@ -182,8 +213,28 @@ async function handleCommand(input: string, root: string, config?: string): Prom
       }
 
       case "new": {
-        await createSession();
+        const session = await createSession();
+        globalSession = session;
         return { status: "done", summary: "New session started" };
+      }
+
+      case "context": {
+        if (!globalSession) {
+          return { status: "failed", summary: "No active session" };
+        }
+        const context = formatContextForLLM(globalSession);
+        if (!context) {
+          return { status: "info", summary: "Empty context - no messages yet" };
+        }
+        const summary = getSessionSummary(globalSession);
+        const lines = [
+          `Messages: ${summary.messageCount} | Tokens: ${summary.tokenCount}`,
+          "",
+          "---",
+          ...context.split("\n").slice(0, 20),
+          ...(context.split("\n").length > 20 ? ["... (truncated)"] : [])
+        ];
+        return { status: "info", summary: "Conversation Context", lines };
       }
 
       case "plan": {
@@ -313,6 +364,11 @@ async function runInput(input: string, root: string, config?: string, onProgress
   try {
     setStreamingState({ active: true, currentGoal: trimmed, progress: null });
     
+    // Add user message to session (if available)
+    if (globalSession) {
+      await addUserMessage(globalSession, trimmed, countTokens(trimmed));
+    }
+    
     // In REPL mode, check tasks first and ask for confirmation if needed
     const [project, loadedConfig] = await Promise.all([detectProject(root), loadConfig(root, config)]);
     const plan = planExecution(trimmed, project, loadedConfig);
@@ -331,6 +387,14 @@ async function runInput(input: string, root: string, config?: string, onProgress
       yes = true; // User confirmed, proceed
     }
     
+    // Get context from session for LLM
+    const context = globalSession ? formatContextForLLM(globalSession) : "";
+    
+    // Get first task info for context
+    const firstTask = plan.tasks[0];
+    const tier = firstTask?.route.tier ?? "cheap";
+    const model = loadedConfig.providers?.[tier]?.model ?? "unknown";
+    
     const result = await autopilotCommand(trimmed, {
       root, config, yes, noReviewPrompt: true,
       onProgress: (progress: AutopilotProgress) => {
@@ -340,6 +404,20 @@ async function runInput(input: string, root: string, config?: string, onProgress
     }) as Record<string, unknown>;
 
     setStreamingState({ active: false, currentGoal: "", progress: null });
+
+    // Add assistant response to session
+    if (globalSession) {
+      const results = result["results"] as Array<{ taskId: string; result: any }> | undefined;
+      if (results && results.length > 0) {
+        const lastResult = results[results.length - 1].result;
+        const responseText = lastResult?.execution?.output ?? lastResult?.summary ?? "Task completed";
+        const responseTokens = countTokens(responseText);
+        await addAssistantMessage(globalSession, responseText, model, tier, responseTokens);
+      } else {
+        const reason = result["reason"] ? (Array.isArray(result["reason"]) ? result["reason"][0] : result["reason"]) : "No output";
+        await addAssistantMessage(globalSession, String(reason), model, tier, countTokens(String(reason)));
+      }
+    }
 
     if (result["stopped"]) {
       const reason = Array.isArray(result["reason"]) ? String(result["reason"][0]) : "stopped";
@@ -367,6 +445,9 @@ export function getLiveHint(input: string, projectType: string): LiveHint {
 }
 
 export async function startRepl(root: string, config?: string): Promise<void> {
+  // Load or create session
+  const session = await loadOrCreateSession();
+  
   const [history, project] = await Promise.all([ReplHistory.load(), detectProject(root)]);
 
   const { waitUntilExit } = render(
@@ -374,6 +455,7 @@ export async function startRepl(root: string, config?: string): Promise<void> {
       version: VERSION,
       projectType: project.projectType,
       history,
+      session,
       onSubmit: async (input: string, onProgress?: (progress: AutopilotProgress) => void) => {
         await history.push(input);
         return runInput(input, root, config, onProgress);

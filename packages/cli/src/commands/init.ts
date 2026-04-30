@@ -2,7 +2,7 @@
 
 import { defaultConfig, detectProject, writeConfig } from "@costscope/core";
 
-export async function initCommand(options: { root: string; force?: boolean }) {
+export async function initCommand(options: { root: string; force?: boolean; interactive?: boolean }) {
   const project = await detectProject(options.root);
   const config = {
     ...defaultConfig,
