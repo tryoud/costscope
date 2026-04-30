@@ -6,6 +6,9 @@ import path from "node:path";
 import { Command } from "commander";
 import type { Tier } from "@costscope/core";
 import { autopilotCommand } from "./commands/autopilot.js";
+import { chatCommand } from "./commands/chat.js";
+import { mcpServerCommand } from "./commands/mcpServer.js";
+import type { AgentProfile } from "@costscope/core";
 import { checkDiffCommand } from "./commands/checkDiff.js";
 import { classifyCommand } from "./commands/classify.js";
 import { costCommand } from "./commands/cost.js";
@@ -247,6 +250,41 @@ export function createProgram(): Command {
         }),
         global.json
       );
+    });
+
+  program
+    .command("chat")
+    .description("Interactive REPL with permission-controlled tools (read/write/bash/grep)")
+    .option("--profile <profile>", "Agent profile: default | plan | accept-edits | auto-approve", "default")
+    .option("--continue", "Resume the most recent session")
+    .option("--resume <id>", "Resume a specific session by id")
+    .option("--prompt <text>", "Single-prompt mode: record one user message and exit")
+    .action(async (options: { profile?: string; continue?: boolean; resume?: string; prompt?: string }) => {
+      const global = normalizeGlobalOptions(program.opts<GlobalOptions>());
+      try {
+        await chatCommand({
+          root: global.root,
+          profile: options.profile as AgentProfile,
+          continueLast: options.continue,
+          resume: options.resume,
+          prompt: options.prompt
+        });
+      } catch (error) {
+        console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 1;
+      }
+    });
+
+  program
+    .command("mcp-server")
+    .description("Run CostScope as a stdio MCP server (exposes classify/scope/route/check-diff/cost)")
+    .action(async () => {
+      try {
+        await mcpServerCommand();
+      } catch (error) {
+        console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 1;
+      }
     });
 
   program

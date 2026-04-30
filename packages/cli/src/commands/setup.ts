@@ -99,7 +99,7 @@ export async function setupWizard(options: { root: string; force?: boolean }): P
       message: `${info.label}  ${pc.dim(info.hint)}`,
       placeholder: "paste key here (input is hidden in logs)",
       validate: (v) => {
-        if (!v.trim()) return `${keyName} is required for the ${preset} preset`;
+        if (!v?.trim()) return `${keyName} is required for the ${preset} preset`;
       }
     });
     if (p.isCancel(value)) { p.cancel("Setup cancelled."); process.exit(0); }

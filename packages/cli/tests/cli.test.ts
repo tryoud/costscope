@@ -21,8 +21,25 @@ describe("createProgram", () => {
         "guard",
         "run",
         "orchestrate",
-        "cost"
+        "cost",
+        "chat",
+        "mcp-server"
       ])
     );
+  });
+
+  it("registers chat command with profile/continue/resume options", () => {
+    const program = createProgram();
+    const chat = program.commands.find((c) => c.name() === "chat");
+    expect(chat).toBeDefined();
+    const optionFlags = chat?.options.map((o) => o.long);
+    expect(optionFlags).toContain("--profile");
+    expect(optionFlags).toContain("--continue");
+    expect(optionFlags).toContain("--resume");
+  });
+
+  it("registers mcp-server command", () => {
+    const mcp = createProgram().commands.find((c) => c.name() === "mcp-server");
+    expect(mcp).toBeDefined();
   });
 });
