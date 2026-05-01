@@ -5,6 +5,7 @@ import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { Command } from "commander";
 import type { Tier } from "@costscope/core";
+import { detectVagueness } from "@costscope/core";
 import { autopilotCommand } from "./commands/autopilot.js";
 import { chatCommand } from "./commands/chat.js";
 import { clarifyCommand } from "./commands/clarify.js";
@@ -56,9 +57,10 @@ export function createProgram(): Command {
       options: { dryRun?: boolean; model?: string; maxTasks?: number; check?: boolean; reviewPrompt?: boolean }
     ) => {
       const global = normalizeGlobalOptions(program.opts<GlobalOptions>());
+      const refinedGoal = await maybeAutoClarify(goal, global.root, global.config, global.json);
       await printResult(
         "Autopilot",
-        autopilotCommand(goal, {
+        autopilotCommand(refinedGoal, {
           root: global.root,
           config: global.config,
           dryRun: options.dryRun,
@@ -214,9 +216,10 @@ export function createProgram(): Command {
     .option("--allow-dirty", "Allow running when the git working tree already has changes")
     .action(async (task: string, options: { model?: string; dryRun?: boolean; yes?: boolean; check?: boolean; allowDirty?: boolean }) => {
       const global = normalizeGlobalOptions(program.opts<GlobalOptions>());
+      const refinedTask = await maybeAutoClarify(task, global.root, global.config, global.json);
       await printResult(
         "Run task",
-        runCommand(task, {
+        runCommand(refinedTask, {
           root: global.root,
           config: global.config,
           model: options.model,
@@ -387,6 +390,18 @@ function shouldExitNonZero(value: unknown): boolean {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+async function maybeAutoClarify(task: string, root: string, config: string | undefined, json: boolean): Promise<string> {
+  if (json || !process.stdin.isTTY) return task;
+  const assessment = detectVagueness(task);
+  if (!assessment.vague) return task;
+  try {
+    const session = await clarifyCommand(task, { root, config, json: false });
+    return session.refinedTask;
+  } catch {
+    return task;
+  }
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

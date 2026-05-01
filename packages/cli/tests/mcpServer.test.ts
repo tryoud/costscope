@@ -19,8 +19,8 @@ async function tempProject(): Promise<string> {
 }
 
 describe("mcpServer tool list", () => {
-  it("exposes 5 tools", () => {
-    expect(_testing.TOOLS).toHaveLength(5);
+  it("exposes 8 tools", () => {
+    expect(_testing.TOOLS).toHaveLength(8);
   });
 
   it("includes core costscope tools", () => {
@@ -30,6 +30,13 @@ describe("mcpServer tool list", () => {
     expect(names).toContain("costscope_route");
     expect(names).toContain("costscope_check_diff");
     expect(names).toContain("costscope_cost");
+  });
+
+  it("includes handoff tools", () => {
+    const names = _testing.TOOLS.map((t) => t.name);
+    expect(names).toContain("costscope_handoff");
+    expect(names).toContain("costscope_verify");
+    expect(names).toContain("costscope_handoff_batch");
   });
 });
 
@@ -60,5 +67,93 @@ describe("callMcpTool", () => {
 
   it("throws on unknown tool", async () => {
     await expect(callMcpTool("nonexistent", {})).rejects.toThrow();
+  });
+});
+
+describe("costscope_handoff", () => {
+  it("returns do-it-yourself for a high-risk auth task", async () => {
+    const root = await tempProject();
+    const result = await callMcpTool("costscope_handoff", {
+      task: "Implement OAuth2 login with JWT, update auth middleware and role permissions",
+      root
+    }) as { verdict: string; tier: string };
+    expect(result.verdict).toBe("do-it-yourself");
+    expect(result.tier).toBe("premium");
+  });
+
+  it("returns run for a simple low-risk task", async () => {
+    const root = await tempProject();
+    const result = await callMcpTool("costscope_handoff", {
+      task: "Update README with installation instructions",
+      root
+    }) as { verdict: string; tier: string; prompt?: string };
+    expect(result.verdict).toBe("run");
+    expect(result.prompt).toBeDefined();
+    expect(typeof result.prompt).toBe("string");
+  });
+
+  it("includes scope in do-it-yourself verdict", async () => {
+    const root = await tempProject();
+    const result = await callMcpTool("costscope_handoff", {
+      task: "Migrate database schema, update migrations and seed data with production keys",
+      root
+    }) as { verdict: string; scope?: { allowedFiles: string[] } };
+    if (result.verdict === "do-it-yourself") {
+      expect(result.scope).toBeDefined();
+    }
+  });
+});
+
+describe("costscope_verify", () => {
+  it("returns a verdict with changedFiles array", async () => {
+    const root = await tempProject();
+    const result = await callMcpTool("costscope_verify", { root, tier: "cheap" }) as {
+      verdict: string;
+      changedFiles: string[];
+    };
+    expect(["pass", "needs-review", "block"]).toContain(result.verdict);
+    expect(Array.isArray(result.changedFiles)).toBe(true);
+  });
+
+  it("passes for a clean tree", async () => {
+    const root = await tempProject();
+    const result = await callMcpTool("costscope_verify", { root }) as { verdict: string };
+    expect(result.verdict).toBe("pass");
+  });
+});
+
+describe("costscope_handoff_batch", () => {
+  it("returns a result per task", async () => {
+    const root = await tempProject();
+    const result = await callMcpTool("costscope_handoff_batch", {
+      tasks: ["Update README", "Fix typo in homepage"],
+      root
+    }) as { results: Array<{ verdict: string; tier: string }> };
+    expect(result.results).toHaveLength(2);
+    for (const r of result.results) {
+      expect(["run", "do-it-yourself"]).toContain(r.verdict);
+      expect(["cheap", "balanced", "premium"]).toContain(r.tier);
+    }
+  });
+
+  it("handles empty task list", async () => {
+    const root = await tempProject();
+    const result = await callMcpTool("costscope_handoff_batch", { tasks: [], root }) as { results: unknown[] };
+    expect(result.results).toHaveLength(0);
+  });
+
+  it("routes each task independently", async () => {
+    const root = await tempProject();
+    const result = await callMcpTool("costscope_handoff_batch", {
+      tasks: [
+        "Update README with badges",
+        "Implement OAuth login with Stripe billing and database migrations"
+      ],
+      root
+    }) as { results: Array<{ verdict: string }> };
+    expect(result.results).toHaveLength(2);
+    const [easy, hard] = result.results;
+    expect(easy!.verdict).toBe("run");
+    expect(hard!.verdict).toBe("do-it-yourself");
   });
 });

@@ -106,6 +106,25 @@ export interface ParallelGroup {
   reason: string[];
 }
 
+export interface HandoffConfig {
+  /** Model used for cheap/easy tasks dispatched via costscope_handoff */
+  easyModel?: string;
+  /** Model used for balanced tasks dispatched via costscope_handoff */
+  balancedModel?: string;
+}
+
+export interface HandoffVerdict {
+  verdict: "run" | "do-it-yourself";
+  tier: Tier;
+  reason: string[];
+  /** Present when verdict === "run": the worker prompt ready for execution */
+  prompt?: string;
+  /** Present when verdict === "do-it-yourself": recommended file scope */
+  scope?: FileScope;
+  /** Present when verdict === "do-it-yourself": review prompt hint for Claude Code */
+  reviewPromptHint?: string;
+}
+
 export interface CostScopeConfig {
   version: 1;
   project: {
@@ -138,6 +157,8 @@ export interface CostScopeConfig {
     premium?: ProviderConfig;
     planner?: ProviderConfig;
   };
+  /** Two-model handoff slots for Claude Code / Codex integration */
+  handoff?: HandoffConfig;
 }
 
 export interface TierConfig {
