@@ -38,7 +38,7 @@ export function createProgram(): Command {
   program
     .name("costscope")
     .description("Route AI coding tasks by cost, risk, and file scope before handing them to a worker agent.")
-    .version("0.2.0")
+    .version("0.3.0")
     .option("--root <path>", "Repository root", process.cwd())
     .option("--config <path>", "Config file path")
     .option("--json", "Print machine-readable JSON");

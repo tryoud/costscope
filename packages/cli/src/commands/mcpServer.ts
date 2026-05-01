@@ -239,7 +239,7 @@ export async function mcpServerCommand(): Promise<void> {
           result: {
             protocolVersion: "2024-11-05",
             capabilities: { tools: {} },
-            serverInfo: { name: "costscope", version: "0.2.0" }
+            serverInfo: { name: "costscope", version: "0.3.0" }
           }
         });
       } else if (req.method === "tools/list") {
