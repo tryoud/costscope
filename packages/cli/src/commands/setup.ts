@@ -109,7 +109,7 @@ export async function setupWizard(options: { root: string; force?: boolean }): P
   // ── Shell config ─────────────────────────────────────────────────────────
   const shellFile = detectShellRc();
   const exportLines = Object.entries(collectedKeys)
-    .filter(([, v]) => !process.env[v])
+    .filter(([k]) => !process.env[k])
     .map(([k, v]) => `export ${k}="${v}"`)
     .join("\n");
 

@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 // SPDX-License-Identifier: Apache-2.0
 
-import { writeFile } from "node:fs/promises";
+import { access, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { Command } from "commander";
+import pc from "picocolors";
 import type { Tier } from "@costscope/core";
 import { detectVagueness } from "@costscope/core";
+import { checkUpdate } from "./update/checkUpdate.js";
 import { autopilotCommand } from "./commands/autopilot.js";
 import { chatCommand } from "./commands/chat.js";
 import { clarifyCommand } from "./commands/clarify.js";
@@ -404,6 +406,47 @@ async function maybeAutoClarify(task: string, root: string, config: string | und
   }
 }
 
+async function warnIfNoConfig(root: string): Promise<void> {
+  const configPath = path.join(root, ".costscope", "config.json");
+  try {
+    await access(configPath);
+  } catch {
+    console.error(
+      `${pc.yellow("⚠")} No config found at ${pc.cyan(".costscope/config.json")}\n` +
+      `  Run ${pc.cyan("costscope init")} to set up API keys and model preset.\n`
+    );
+  }
+}
+
+const KNOWN_COMMANDS = new Set([
+  "autopilot", "init", "scan", "classify", "scope", "route", "plan",
+  "prompt", "review-prompt", "check-diff", "guard", "run", "orchestrate",
+  "cost", "chat", "mcp-server", "clarify", "--help", "-h", "--version", "-V"
+]);
+
 if (import.meta.url === `file://${process.argv[1]}`) {
+  const firstArg = process.argv[2];
+  const isJson = process.argv.includes("--json");
+
+  // Bare task string (not a known subcommand) → inject autopilot
+  if (firstArg && !firstArg.startsWith("-") && !KNOWN_COMMANDS.has(firstArg)) {
+    process.argv.splice(2, 0, "autopilot");
+    if (!isJson) {
+      console.error(
+        `${pc.bgCyan(pc.black("  costscope  "))} ${pc.bold("autopilot")}  ${pc.dim("— plan → scope → run → diff-check")}\n` +
+        `  ${pc.dim("Other modes:")} costscope run · costscope plan · costscope route · --dry-run\n`
+      );
+    }
+  } else if (!firstArg && process.stdin.isTTY) {
+    // No arguments in a TTY → show help (REPL is `costscope chat`)
+    createProgram().help();
+  }
+
+  const root = path.resolve(process.cwd());
+  if (!isJson) {
+    await warnIfNoConfig(root);
+    checkUpdate().catch(() => {});
+  }
+
   await createProgram().parseAsync();
 }
