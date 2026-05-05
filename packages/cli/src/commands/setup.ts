@@ -99,7 +99,7 @@ export async function setupWizard(options: { root: string; force?: boolean }): P
       message: `${info.label}  ${pc.dim(info.hint)}`,
       placeholder: "paste key here (input is hidden in logs)",
       validate: (v) => {
-        if (!v.trim()) return `${keyName} is required for the ${preset} preset`;
+        if (!v?.trim()) return `${keyName} is required for the ${preset} preset`;
       }
     });
     if (p.isCancel(value)) { p.cancel("Setup cancelled."); process.exit(0); }
@@ -109,7 +109,7 @@ export async function setupWizard(options: { root: string; force?: boolean }): P
   // ── Shell config ─────────────────────────────────────────────────────────
   const shellFile = detectShellRc();
   const exportLines = Object.entries(collectedKeys)
-    .filter(([, v]) => !process.env[v])
+    .filter(([k]) => !process.env[k])
     .map(([k, v]) => `export ${k}="${v}"`)
     .join("\n");
 

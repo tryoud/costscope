@@ -1,11 +1,18 @@
 #!/usr/bin/env node
 // SPDX-License-Identifier: Apache-2.0
 
-import { writeFile } from "node:fs/promises";
+import { access, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { Command } from "commander";
+import pc from "picocolors";
 import type { Tier } from "@costscope/core";
+import { detectVagueness } from "@costscope/core";
+import { checkUpdate } from "./update/checkUpdate.js";
 import { autopilotCommand } from "./commands/autopilot.js";
+import { chatCommand } from "./commands/chat.js";
+import { clarifyCommand } from "./commands/clarify.js";
+import { mcpServerCommand } from "./commands/mcpServer.js";
+import type { AgentProfile } from "@costscope/core";
 import { checkDiffCommand } from "./commands/checkDiff.js";
 import { classifyCommand } from "./commands/classify.js";
 import { costCommand } from "./commands/cost.js";
@@ -33,7 +40,7 @@ export function createProgram(): Command {
   program
     .name("costscope")
     .description("Route AI coding tasks by cost, risk, and file scope before handing them to a worker agent.")
-    .version("0.2.0")
+    .version("0.3.0")
     .option("--root <path>", "Repository root", process.cwd())
     .option("--config <path>", "Config file path")
     .option("--json", "Print machine-readable JSON");
@@ -52,9 +59,10 @@ export function createProgram(): Command {
       options: { dryRun?: boolean; model?: string; maxTasks?: number; check?: boolean; reviewPrompt?: boolean }
     ) => {
       const global = normalizeGlobalOptions(program.opts<GlobalOptions>());
+      const refinedGoal = await maybeAutoClarify(goal, global.root, global.config, global.json);
       await printResult(
         "Autopilot",
-        autopilotCommand(goal, {
+        autopilotCommand(refinedGoal, {
           root: global.root,
           config: global.config,
           dryRun: options.dryRun,
@@ -210,9 +218,10 @@ export function createProgram(): Command {
     .option("--allow-dirty", "Allow running when the git working tree already has changes")
     .action(async (task: string, options: { model?: string; dryRun?: boolean; yes?: boolean; check?: boolean; allowDirty?: boolean }) => {
       const global = normalizeGlobalOptions(program.opts<GlobalOptions>());
+      const refinedTask = await maybeAutoClarify(task, global.root, global.config, global.json);
       await printResult(
         "Run task",
-        runCommand(task, {
+        runCommand(refinedTask, {
           root: global.root,
           config: global.config,
           model: options.model,
@@ -247,6 +256,68 @@ export function createProgram(): Command {
         }),
         global.json
       );
+    });
+
+  program
+    .command("clarify")
+    .description("Ask the user 3-10 multiple-choice questions to refine a vague task")
+    .argument("<task>", "Task to clarify")
+    .option("--force", "Run even if the task does not appear vague")
+    .option("--output <file>", "Write the refined task to a file")
+    .action(async (task: string, options: { force?: boolean; output?: string }) => {
+      const global = normalizeGlobalOptions(program.opts<GlobalOptions>());
+      try {
+        const session = await clarifyCommand(task, {
+          root: global.root,
+          config: global.config,
+          force: options.force,
+          output: options.output,
+          json: global.json
+        });
+        if (global.json) {
+          printJson(session);
+        } else {
+          printHuman("Refined task", { refinedTask: session.refinedTask });
+        }
+      } catch (error) {
+        console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 1;
+      }
+    });
+
+  program
+    .command("chat")
+    .description("Interactive REPL with permission-controlled tools (read/write/bash/grep)")
+    .option("--profile <profile>", "Agent profile: default | plan | accept-edits | auto-approve", "default")
+    .option("--continue", "Resume the most recent session")
+    .option("--resume <id>", "Resume a specific session by id")
+    .option("--prompt <text>", "Single-prompt mode: record one user message and exit")
+    .action(async (options: { profile?: string; continue?: boolean; resume?: string; prompt?: string }) => {
+      const global = normalizeGlobalOptions(program.opts<GlobalOptions>());
+      try {
+        await chatCommand({
+          root: global.root,
+          profile: options.profile as AgentProfile,
+          continueLast: options.continue,
+          resume: options.resume,
+          prompt: options.prompt
+        });
+      } catch (error) {
+        console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 1;
+      }
+    });
+
+  program
+    .command("mcp-server")
+    .description("Run CostScope as a stdio MCP server (exposes classify/scope/route/check-diff/cost)")
+    .action(async () => {
+      try {
+        await mcpServerCommand();
+      } catch (error) {
+        console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 1;
+      }
     });
 
   program
@@ -323,6 +394,59 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+async function maybeAutoClarify(task: string, root: string, config: string | undefined, json: boolean): Promise<string> {
+  if (json || !process.stdin.isTTY) return task;
+  const assessment = detectVagueness(task);
+  if (!assessment.vague) return task;
+  try {
+    const session = await clarifyCommand(task, { root, config, json: false });
+    return session.refinedTask;
+  } catch {
+    return task;
+  }
+}
+
+async function warnIfNoConfig(root: string): Promise<void> {
+  const configPath = path.join(root, ".costscope", "config.json");
+  try {
+    await access(configPath);
+  } catch {
+    console.error(
+      `${pc.yellow("⚠")} No config found at ${pc.cyan(".costscope/config.json")}\n` +
+      `  Run ${pc.cyan("costscope init")} to set up API keys and model preset.\n`
+    );
+  }
+}
+
+const KNOWN_COMMANDS = new Set([
+  "autopilot", "init", "scan", "classify", "scope", "route", "plan",
+  "prompt", "review-prompt", "check-diff", "guard", "run", "orchestrate",
+  "cost", "chat", "mcp-server", "clarify", "--help", "-h", "--version", "-V"
+]);
+
 if (import.meta.url === `file://${process.argv[1]}`) {
+  const firstArg = process.argv[2];
+  const isJson = process.argv.includes("--json");
+
+  // Bare task string (not a known subcommand) → inject autopilot
+  if (firstArg && !firstArg.startsWith("-") && !KNOWN_COMMANDS.has(firstArg)) {
+    process.argv.splice(2, 0, "autopilot");
+    if (!isJson) {
+      console.error(
+        `${pc.bgCyan(pc.black("  costscope  "))} ${pc.bold("autopilot")}  ${pc.dim("— plan → scope → run → diff-check")}\n` +
+        `  ${pc.dim("Other modes:")} costscope run · costscope plan · costscope route · --dry-run\n`
+      );
+    }
+  } else if (!firstArg && process.stdin.isTTY) {
+    // No arguments in a TTY → show help (REPL is `costscope chat`)
+    createProgram().help();
+  }
+
+  const root = path.resolve(process.cwd());
+  if (!isJson) {
+    await warnIfNoConfig(root);
+    checkUpdate().catch(() => {});
+  }
+
   await createProgram().parseAsync();
 }

@@ -65,7 +65,11 @@ export const configSchema = z.object({
     premium: providerConfigSchema.optional(),
     planner: providerConfigSchema.optional()
   })
-    .optional()
+    .optional(),
+  handoff: z.object({
+    easyModel: z.string().optional(),
+    balancedModel: z.string().optional()
+  }).optional()
 });
 
 export function validateConfig(config: unknown): CostScopeConfig {

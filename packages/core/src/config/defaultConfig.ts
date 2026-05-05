@@ -64,5 +64,9 @@ export const defaultConfig: CostScopeConfig = {
       model: "deepseek/deepseek-r1",
       apiKey: "${OPENROUTER_API_KEY}"
     }
+  },
+  handoff: {
+    easyModel: "codestral-latest",
+    balancedModel: "deepseek/deepseek-chat"
   }
 };
